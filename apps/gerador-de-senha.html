@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerador de Senha</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+  :root {
+    --bg: #14151b;
+    --bg-grid: #1a1c24;
+    --surface: #1d1f29;
+    --surface-2: #262936;
+    --border: #34374380;
+    --border-strong: #454964;
+    --text: #eceaf0;
+    --text-dim: #9b9fb0;
+    --accent: #c9974c;
+    --accent-dim: #c9974c33;
+    --teal: #5fb8a8;
+    --teal-dim: #5fb8a833;
+    --danger: #e2685c;
+    --weak: #e2685c;
+    --medium: #d9a441;
+    --strong: #5fb8a8;
+    --vstrong: #6fd6a0;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 32px 28px;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02);
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 3px var(--teal-dim);
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 600;
+    margin: 0 0 22px;
+    letter-spacing: -0.01em;
+  }
+
+  .config {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 18px;
+  }
+
+  .campo {
+    min-width: 0;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .campo label {
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .stepper button {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .stepper button:hover { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+  .stepper button:focus-visible,
+  input:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .campo input[type="number"] {
+    width: 2.1rem;
+    min-width: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    -moz-appearance: textfield;
+  }
+  .campo input[type="number"]::-webkit-outer-spin-button,
+  .campo input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .erro {
+    color: var(--danger);
+    font-size: 0.82rem;
+    min-height: 1.2rem;
+    margin-bottom: 4px;
+  }
+
+  .saida {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  #senha {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.45rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    word-break: break-all;
+    color: var(--text);
+  }
+
+  #copiarIcon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  #copiarIcon:hover { background: var(--teal-dim); color: var(--teal); border-color: var(--teal); }
+  #copiarIcon svg { width: 16px; height: 16px; }
+
+  .entropia {
+    margin-bottom: 22px;
+  }
+  .entropia-linha {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .entropia-linha span#nivelTexto { font-weight: 700; letter-spacing: 0.03em; }
+  .barra {
+    height: 6px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .barra-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    transition: width 0.3s ease, background 0.3s ease;
+  }
+
+  .botoes {
+    display: flex;
+    gap: 10px;
+  }
+
+  button.acao {
+    flex: 1;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.05s;
+  }
+  button.acao:active { transform: translateY(1px); }
+
+  #gerar { background: var(--accent); color: #1a1206; }
+  #gerar:hover { filter: brightness(1.08); }
+
+  #copiar { background: transparent; color: var(--teal); border: 1px solid var(--teal); }
+  #copiar:hover { background: var(--teal-dim); }
+
+  #feedback {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: var(--teal);
+    text-align: center;
+    height: 1.1rem;
+  }
+
+  .topo-acoes {
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+  }
+  .btn-sobre {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 20px;
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn-sobre:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .btn-sobre svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; flex-shrink: 0; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(8,9,14,.6);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%; max-width: 420px;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,.35);
+  }
+  .modal-header {
+    background: linear-gradient(135deg, var(--surface) 0%, #0e0f14 100%);
+    padding: 20px 22px 16px;
+  }
+  .modal-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .modal-app-name { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
+  .modal-version {
+    font-size: 11px; color: var(--accent);
+    background: var(--accent-dim);
+    border-radius: 10px; padding: 2px 9px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .modal-close {
+    margin-left: 12px;
+    background: rgba(255,255,255,.12); border: none;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #fff; font-size: 16px; line-height: 1; flex-shrink: 0;
+  }
+  .modal-close:hover { background: rgba(255,255,255,.25); }
+  .modal-org { font-size: 11px; color: rgba(255,255,255,.65); font-family: 'JetBrains Mono', monospace; letter-spacing: .03em; }
+  .modal-body { padding: 20px 22px; }
+  .modal-desc { font-size: 13.5px; color: #334155; line-height: 1.7; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid #E2E8F0; }
+  .modal-credits { display: flex; flex-direction: column; gap: 12px; }
+  .credit-row { display: flex; align-items: center; gap: 12px; }
+  .credit-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; overflow: hidden;
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .credit-avatar svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .credit-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #94A3B8; margin-bottom: 1px; }
+  .credit-name { font-size: 13.5px; font-weight: 700; color: #0F172A; }
+  .credit-role { font-size: 12px; color: #64748B; }
+  .modal-footer { padding: 12px 22px; background: #F8FAFC; border-top: 1px solid #E2E8F0; font-size: 11.5px; color: #94A3B8; text-align: center; }
+
+  @media (max-width: 380px) {
+    .card { padding: 26px 18px; }
+    #senha { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <p class="eyebrow">Ferramenta interna</p>
+  <h1>Gerador de Senha</h1>
+
+  <div class="config">
+    <div class="campo">
+      <label for="qtdNumeros">Números</label>
+      <div class="stepper">
+        <button type="button" onclick="ajustar('qtdNumeros', -1)" aria-label="Diminuir números">−</button>
+        <input type="number" id="qtdNumeros" min="0" max="50" value="4" inputmode="numeric">
+        <button type="button" onclick="ajustar('qtdNumeros', 1)" aria-label="Aumentar números">+</button>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="qtdLetras">Letras</label>
+      <div class="stepper">
+        <button type="button" onclick="ajustar('qtdLetras', -1)" aria-label="Diminuir letras">−</button>
+        <input type="number" id="qtdLetras" min="0" max="50" value="2" inputmode="numeric">
+        <button type="button" onclick="ajustar('qtdLetras', 1)" aria-label="Aumentar letras">+</button>
+      </div>
+    </div>
+    <div class="campo">
+      <label for="qtdEspeciais">Especiais</label>
+      <div class="stepper">
+        <button type="button" onclick="ajustar('qtdEspeciais', -1)" aria-label="Diminuir especiais">−</button>
+        <input type="number" id="qtdEspeciais" min="0" max="50" value="0" inputmode="numeric">
+        <button type="button" onclick="ajustar('qtdEspeciais', 1)" aria-label="Aumentar especiais">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="erro" class="erro" role="alert"></div>
+
+  <div class="saida">
+    <span id="senha">------</span>
+    <button id="copiarIcon" onclick="copiarSenha()" aria-label="Copiar senha" title="Copiar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div class="entropia">
+    <div class="entropia-linha">
+      <span id="bitsTexto">~0 bits</span>
+      <span id="nivelTexto">—</span>
+    </div>
+    <div class="barra"><div class="barra-fill" id="barraFill"></div></div>
+  </div>
+
+  <div class="botoes">
+    <button class="acao" id="gerar" onclick="atualizarSenha()">Gerar nova senha</button>
+    <button class="acao" id="copiar" onclick="copiarSenha()">Copiar</button>
+  </div>
+  <div id="feedback" aria-live="polite"></div>
+
+  <div class="topo-acoes">
+    <button class="btn-sobre" onclick="abrirSobre()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      Sobre
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalSobre" onclick="fecharSobre(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-top">
+        <div>
+          <div class="modal-app-name">Gerador de Senha</div>
+          <div class="modal-version">v1.0</div>
+        </div>
+        <button class="modal-close" onclick="fecharSobre()" title="Fechar">×</button>
+      </div>
+      <div class="modal-org">GEE &nbsp;·&nbsp; SEDUCT &nbsp;·&nbsp; Campos dos Goytacazes / RJ</div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">Gera senhas aleatórias com quantidade configurável de números, letras e caracteres especiais, com indicador de força baseado em entropia. Funciona totalmente offline, direto no navegador.</p>
+      <div class="modal-credits">
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#c9974c;">AR</div>
+          <div>
+            <div class="credit-label">Idealizador</div>
+            <div class="credit-name">Alamir Rodrigues Rangel Junior</div>
+            <div class="credit-role">Auxiliar de Secretaria - GEE / SEDUCT</div>
+          </div>
+        </div>
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#0F172A;">
+            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <div>
+            <div class="credit-label">Implementado por</div>
+            <div class="credit-name">Claude AI</div>
+            <div class="credit-role">Anthropic</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">Campos dos Goytacazes, RJ &nbsp;·&nbsp; SEDUCT / GEE</div>
+  </div>
+</div>
+
+<script>
+  function abrirSobre() {
+    document.getElementById('modalSobre').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function fecharSobre(e) {
+    if (e && e.target !== document.getElementById('modalSobre')) return;
+    document.getElementById('modalSobre').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') fecharSobre(); });
+</script>
+
+<script>
+  const LIMITES = { min: 0, max: 50 };
+
+  function ajustar(id, delta) {
+    const input = document.getElementById(id);
+    let valor = (parseInt(input.value) || 0) + delta;
+    valor = Math.max(LIMITES.min, Math.min(LIMITES.max, valor));
+    input.value = valor;
+    atualizarSenha();
+  }
+
+  function gerarSenha() {
+    const digitos = "0123456789";
+    const letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const especiais = "!@#$%^&*()-_=+[]{};:,.?";
+
+    const qtdNumeros = clamp(parseInt(document.getElementById("qtdNumeros").value) || 0);
+    const qtdLetras = clamp(parseInt(document.getElementById("qtdLetras").value) || 0);
+    const qtdEspeciais = clamp(parseInt(document.getElementById("qtdEspeciais").value) || 0);
+
+    const erro = document.getElementById("erro");
+
+    if (qtdNumeros + qtdLetras + qtdEspeciais === 0) {
+      erro.textContent = "Defina ao menos 1 caractere no total.";
+      atualizarEntropia(0, 0);
+      return null;
+    }
+
+    erro.textContent = "";
+
+    let caracteres = [];
+    for (let i = 0; i < qtdNumeros; i++) caracteres.push(digitos[Math.floor(Math.random() * digitos.length)]);
+    for (let i = 0; i < qtdLetras; i++) caracteres.push(letras[Math.floor(Math.random() * letras.length)]);
+    for (let i = 0; i < qtdEspeciais; i++) caracteres.push(especiais[Math.floor(Math.random() * especiais.length)]);
+
+    for (let i = caracteres.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [caracteres[i], caracteres[j]] = [caracteres[j], caracteres[i]];
+    }
+
+    const bits = (qtdNumeros * Math.log2(digitos.length)) +
+                 (qtdLetras * Math.log2(letras.length)) +
+                 (qtdEspeciais * Math.log2(especiais.length));
+    atualizarEntropia(bits, caracteres.length);
+
+    return caracteres.join("");
+  }
+
+  function clamp(v) { return Math.max(LIMITES.min, Math.min(LIMITES.max, v)); }
+
+  function atualizarEntropia(bits, total) {
+    const bitsTexto = document.getElementById("bitsTexto");
+    const nivelTexto = document.getElementById("nivelTexto");
+    const fill = document.getElementById("barraFill");
+
+    bitsTexto.textContent = total === 0 ? "~0 bits" : `~${Math.round(bits)} bits · ${total} caracteres`;
+
+    let nivel, cor, largura;
+    if (bits === 0)        { nivel = "—";          cor = "var(--border-strong)"; largura = 0; }
+    else if (bits < 28)    { nivel = "Fraca";       cor = "var(--weak)";    largura = 25; }
+    else if (bits < 48)    { nivel = "Média";       cor = "var(--medium)";  largura = 55; }
+    else if (bits < 72)    { nivel = "Forte";       cor = "var(--strong)";  largura = 80; }
+    else                   { nivel = "Muito forte"; cor = "var(--vstrong)"; largura = 100; }
+
+    nivelTexto.textContent = nivel;
+    nivelTexto.style.color = cor;
+    fill.style.width = largura + "%";
+    fill.style.background = cor;
+  }
+
+  function atualizarSenha() {
+    const senha = gerarSenha();
+    if (senha === null) {
+      document.getElementById("senha").textContent = "------";
+      return;
+    }
+    document.getElementById("senha").textContent = senha;
+    document.getElementById("feedback").textContent = "";
+  }
+
+  function copiarSenha() {
+    const senha = document.getElementById("senha").textContent;
+    const feedback = document.getElementById("feedback");
+    if (!senha || senha === "------") return;
+
+    const temp = document.createElement("textarea");
+    temp.value = senha;
+    temp.style.position = "fixed";
+    temp.style.opacity = "0";
+    document.body.appendChild(temp);
+    temp.focus();
+    temp.select();
+
+    let sucesso = false;
+    try {
+      sucesso = document.execCommand("copy");
+    } catch (e) {
+      sucesso = false;
+    }
+    document.body.removeChild(temp);
+
+    feedback.textContent = sucesso ? "Senha copiada!" : "Não foi possível copiar. Copie manualmente.";
+    setTimeout(() => feedback.textContent = "", 1800);
+  }
+
+  ["qtdNumeros", "qtdLetras", "qtdEspeciais"].forEach(id => {
+    document.getElementById(id).addEventListener("input", atualizarSenha);
+  });
+
+  atualizarSenha();
+</script>
+
+</body>
+</html>

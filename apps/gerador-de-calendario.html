@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Calendário - GEE/SEDUCT</title>
+<style>
+  :root{
+    --cor-primaria:#0B4F6C;
+    --cor-primaria-escura:#06324A;
+    --cor-secundaria:#01A7C2;
+    --cor-fim-semana:#EAF4F7;
+    --cor-hoje:#FFF3CD;
+    --cor-aniversario-texto:#B3174D;
+    --cor-aniversario-fundo:#FBE3ED;
+    --cor-feriado-fundo:#FCE8D2;
+    --cor-feriado-texto:#9A4F00;
+    --cor-evento-fundo:#EAE6F7;
+    --cor-evento-texto:#4B3F87;
+    --cor-texto:#16252E;
+    --cor-linha-grade:#C7D3D8;
+    --cor-fundo-pagina:#3A4750;
+  }
+
+  *{
+    box-sizing:border-box;
+    -webkit-print-color-adjust:exact !important;
+    print-color-adjust:exact !important;
+    color-adjust:exact !important;
+  }
+  body{
+    margin:0;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, Helvetica, sans-serif;
+    color:var(--cor-texto);
+    background:var(--cor-fundo-pagina);
+  }
+
+  /* ---------- PAINEL DE CONTROLE (não imprime) ---------- */
+  .painel{
+    background:#fff;
+    padding:18px 22px 24px;
+    box-shadow:0 2px 10px rgba(0,0,0,.25);
+    position:relative;
+    z-index:5;
+  }
+  .painel h1{
+    font-size:19px;
+    color:var(--cor-primaria);
+    margin:0 0 2px;
+  }
+  .painel .subtitulo{
+    font-size:12.5px;
+    color:#5a6b73;
+    margin:0 0 16px;
+  }
+  .linha-controles{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    align-items:flex-end;
+    margin-bottom:14px;
+  }
+  .campo{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .campo label{
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--cor-primaria-escura);
+    text-transform:uppercase;
+    letter-spacing:.3px;
+  }
+  .campo input, .campo select{
+    padding:7px 9px;
+    border:1px solid #c7d3d8;
+    border-radius:6px;
+    font-size:14px;
+    min-width:150px;
+  }
+  .campo input[type="number"]{ width:90px; min-width:0; }
+  .campo input[type="text"]{ min-width:220px; }
+
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:6px;
+    padding:9px 16px;
+    font-size:13.5px;
+    font-weight:600;
+    transition:filter .15s;
+  }
+  button:hover{ filter:brightness(1.08); }
+  .btn-principal{ background:var(--cor-primaria); color:#fff; }
+  .btn-secundario{ background:#eef3f5; color:var(--cor-primaria-escura); }
+  .btn-imprimir{ background:var(--cor-secundaria); color:#fff; }
+  .btn-remover{ background:#fbe3ed; color:var(--cor-aniversario-texto); padding:3px 9px; font-size:12px; }
+
+  hr.sep{ border:none; border-top:1px solid #e3e9eb; margin:14px 0; }
+
+  .bloco-aniversariantes h2, .bloco-acoes h2{
+    font-size:13.5px;
+    color:var(--cor-primaria-escura);
+    margin:0 0 10px;
+  }
+  table.lista-aniv{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    margin-top:10px;
+  }
+  table.lista-aniv th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    color:#5a6b73;
+    border-bottom:1px solid #e3e9eb;
+    padding:4px 6px;
+  }
+  table.lista-aniv td{
+    padding:5px 6px;
+    border-bottom:1px solid #f0f3f4;
+  }
+  .vazio-aviso{ font-size:12.5px; color:#8a979d; font-style:italic; margin-top:6px; }
+
+  .bloco-acoes{ display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap; }
+
+  /* ---------- ÁREA DE PRÉVIA / IMPRESSÃO ---------- */
+  #calendario-container{
+    padding:28px 0 60px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:22px;
+  }
+
+  .pagina{
+    width:210mm;
+    min-height:297mm;
+    background:#fff;
+    box-shadow:0 4px 18px rgba(0,0,0,.35);
+    padding:14mm;
+    box-sizing:border-box;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .cabecalho{
+    background:var(--cor-primaria);
+    color:#fff;
+    margin:-14mm -14mm 6mm -14mm;
+    padding:8mm 14mm 6mm;
+    position:relative;
+  }
+  .cabecalho::after{
+    content:"";
+    display:block;
+    height:2mm;
+    background:var(--cor-secundaria);
+    margin:0 -14mm;
+    margin-top:2mm;
+  }
+  .cabecalho .linha-topo{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:10mm;
+  }
+  .cabecalho .org{ line-height:1.35; }
+  .cabecalho .org .l1{ font-size:9.5px; font-weight:700; }
+  .cabecalho .org .l2{ font-size:14.5px; font-weight:700; margin:1mm 0; }
+  .cabecalho .org .l3{ font-size:9.5px; }
+  .cabecalho .mes-ano{ text-align:right; white-space:nowrap; }
+  .cabecalho .mes-ano .mes{ font-size:24px; font-weight:700; letter-spacing:.5px; }
+  .cabecalho .mes-ano .ano{ font-size:15px; }
+
+  .grade-semana{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    background:var(--cor-primaria-escura);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    text-align:center;
+  }
+  .grade-semana div{ padding:2.4mm 0; }
+
+  .grade-dias{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    flex:1;
+  }
+  .celula{
+    border:.5px solid var(--cor-linha-grade);
+    padding:2mm;
+    position:relative;
+    min-height:0;
+    overflow:hidden;
+  }
+  .celula.vazia{ background:#fafbfb; }
+  .celula.fim-semana{ background:var(--cor-fim-semana); }
+  .celula.tem-aniversario{ background:var(--cor-aniversario-fundo); }
+  .celula.evento{ background:var(--cor-evento-fundo); }
+  .celula.feriado{ background:var(--cor-feriado-fundo); }
+  .celula .numero{
+    font-size:16px;
+    font-weight:700;
+  }
+  .celula.hoje .numero{
+    display:inline-block;
+    background:var(--cor-hoje);
+    border-radius:50%;
+    width:6.2mm;
+    height:6.2mm;
+    line-height:6.2mm;
+    text-align:center;
+  }
+  .celula .feriado-nome{
+    font-size:11px;
+    font-weight:700;
+    color:var(--cor-feriado-texto);
+    margin-top:1mm;
+    line-height:1.2;
+    word-break:break-word;
+  }
+  .celula .evento-nome{
+    font-size:11px;
+    font-style:italic;
+    color:var(--cor-evento-texto);
+    margin-top:1mm;
+    line-height:1.2;
+    word-break:break-word;
+  }
+  .celula .nomes{
+    font-size:12px;
+    color:var(--cor-aniversario-texto);
+    margin-top:1mm;
+    line-height:1.25;
+    word-break:break-word;
+  }
+
+  .rodape{
+    margin-top:5mm;
+    padding-top:2.5mm;
+    border-top:.5px solid var(--cor-linha-grade);
+    display:flex;
+    justify-content:space-between;
+    font-size:8px;
+    color:var(--cor-texto);
+  }
+
+  .legenda{
+    display:flex;
+    gap:5mm;
+    flex-wrap:wrap;
+    font-size:7.5px;
+    color:var(--cor-texto);
+    margin-top:2mm;
+  }
+  .legenda span{ display:inline-flex; align-items:center; gap:1.3mm; }
+  .legenda .quadrado{
+    display:inline-block;
+    width:2.6mm;
+    height:2.6mm;
+    border-radius:.6mm;
+  }
+  .legenda .quadrado.feriado{ background:var(--cor-feriado-fundo); border:.5px solid var(--cor-feriado-texto); }
+  .legenda .quadrado.evento{ background:var(--cor-evento-fundo); border:.5px solid var(--cor-evento-texto); }
+  .legenda .quadrado.aniversario{ background:var(--cor-aniversario-fundo); border:.5px solid var(--cor-aniversario-texto); }
+
+  /* ---------- MODO COMPACTO (ano em 1 página) ---------- */
+  .grid-meses{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(4,1fr);
+    gap:3mm;
+    flex:1;
+    margin-top:1mm;
+  }
+  .mini-mes{
+    border:.5px solid var(--cor-linha-grade);
+    display:flex;
+    flex-direction:column;
+  }
+  .mini-mes .mini-titulo{
+    background:var(--cor-primaria);
+    color:#fff;
+    font-size:10px;
+    font-weight:700;
+    text-align:center;
+    padding:1.3mm 0;
+    letter-spacing:.3px;
+  }
+  .mini-mes .mini-semana{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    font-size:7.5px;
+    font-weight:700;
+    color:var(--cor-primaria-escura);
+    text-align:center;
+    padding:0.8mm 0;
+  }
+  .mini-mes .mini-dias{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    flex:1;
+  }
+  .mini-mes .mini-celula{
+    font-size:9px;
+    text-align:center;
+    padding-top:0.6mm;
+  }
+  .mini-mes .mini-celula.fim-semana{ color:var(--cor-primaria-escura); }
+  .mini-mes .mini-celula.feriado{ background:var(--cor-feriado-fundo); color:var(--cor-feriado-texto); font-weight:700; }
+  .mini-mes .mini-celula.evento{ background:var(--cor-evento-fundo); color:var(--cor-evento-texto); font-weight:700; }
+  .mini-mes .mini-celula .bolinha{
+    display:inline-block;
+    background:var(--cor-aniversario-texto);
+    color:#fff;
+    border-radius:50%;
+    width:4.4mm;
+    height:4.4mm;
+    line-height:4.4mm;
+  }
+
+  .lista-aniversariantes-ano{ margin-top:4mm; }
+  .lista-aniversariantes-ano h3{
+    font-size:10px;
+    color:var(--cor-primaria);
+    border-bottom:1px solid var(--cor-secundaria);
+    display:inline-block;
+    padding-bottom:1mm;
+    margin:0 0 2mm;
+  }
+  .lista-aniversariantes-ano .colunas{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    column-gap:6mm;
+    font-size:9.5px;
+    line-height:1.55;
+  }
+
+  .aviso-vazio-preview{
+    color:#cfd8da;
+    font-size:13px;
+    text-align:center;
+    margin-top:30px;
+  }
+
+  /* ---------- MODAL "SOBRE" ---------- */
+  .modal-fundo{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.45);
+    align-items:center; justify-content:center;
+    z-index:50;
+  }
+  .modal-fundo.ativo{ display:flex; }
+  .modal-caixa{
+    background:#fff;
+    border-radius:10px;
+    padding:22px 26px;
+    max-width:360px;
+    font-size:13.5px;
+    line-height:1.5;
+  }
+  .modal-caixa h3{ margin:0 0 8px; color:var(--cor-primaria); font-size:16px; }
+  .modal-caixa .fechar{ margin-top:14px; }
+
+  .link-sobre{
+    font-size:11.5px;
+    color:#8a979d;
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;
+    padding:0;
+    font-weight:400;
+  }
+
+  @media print{
+    .no-imprimir{ display:none !important; }
+    body{ background:#fff; }
+    #calendario-container{ padding:0; gap:0; }
+    .pagina{
+      box-shadow:none;
+      page-break-after:always;
+      margin:0;
+    }
+    .pagina:last-child{ page-break-after:auto; }
+  }
+
+  @page{
+    size:A4;
+    margin:0;
+  }
+
+  @media screen and (max-width:900px){
+    .pagina{ width:100%; min-height:auto; padding:6mm; }
+    .cabecalho{ margin:-6mm -6mm 6mm -6mm; padding:5mm 6mm 4mm; }
+    .cabecalho .linha-topo{ flex-direction:column; gap:3mm; }
+    .cabecalho .mes-ano{ text-align:left; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="painel no-imprimir">
+    <h1>Gerador de Calendário - GEE/SEDUCT</h1>
+    <p class="subtitulo">Gerência de Educação Especial · Campos dos Goytacazes/RJ</p>
+
+    <div class="linha-controles">
+      <div class="campo">
+        <label for="sel-modo">Modo</label>
+        <select id="sel-modo">
+          <option value="mes">Mês específico</option>
+          <option value="todos">Ano completo (1 página por mês)</option>
+          <option value="compacto">Ano completo compacto (1 página)</option>
+        </select>
+      </div>
+      <div class="campo" id="campo-mes">
+        <label for="sel-mes">Mês</label>
+        <select id="sel-mes"></select>
+      </div>
+      <div class="campo">
+        <label for="input-ano">Ano</label>
+        <input type="number" id="input-ano" value="2026">
+      </div>
+      <button class="btn-principal" id="btn-gerar">Gerar calendário</button>
+    </div>
+
+    <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--cor-primaria-escura); margin-bottom:4px;">
+      <input type="checkbox" id="chk-feriados" checked style="width:auto; min-width:0;">
+      Incluir feriados nacionais e municipais (Campos dos Goytacazes/RJ) automaticamente
+    </label>
+
+    <hr class="sep">
+
+    <div class="bloco-aniversariantes">
+      <h2>Aniversariantes (inserir antes de imprimir)</h2>
+      <div class="linha-controles" style="margin-bottom:8px;">
+        <div class="campo">
+          <label for="aniv-mes">Mês</label>
+          <select id="aniv-mes"></select>
+        </div>
+        <div class="campo">
+          <label for="aniv-dia">Dia</label>
+          <input type="number" id="aniv-dia" min="1" max="31" placeholder="ex: 15">
+        </div>
+        <div class="campo">
+          <label for="aniv-nome">Nome</label>
+          <input type="text" id="aniv-nome" placeholder="ex: Maria da Silva">
+        </div>
+        <button class="btn-secundario" id="btn-add-aniv">+ Adicionar</button>
+      </div>
+      <table class="lista-aniv" id="tabela-aniv">
+        <thead>
+          <tr><th>Mês</th><th>Dia</th><th>Nome</th><th></th></tr>
+        </thead>
+        <tbody id="corpo-tabela-aniv"></tbody>
+      </table>
+      <p class="vazio-aviso" id="aviso-lista-vazia">Nenhum aniversariante inserido ainda.</p>
+    </div>
+
+    <hr class="sep">
+
+    <div class="bloco-eventos">
+      <h2>Outras marcações (ponto facultativo, recesso, evento, etc.)</h2>
+      <div class="linha-controles" style="margin-bottom:8px;">
+        <div class="campo">
+          <label for="evento-mes">Mês</label>
+          <select id="evento-mes"></select>
+        </div>
+        <div class="campo">
+          <label for="evento-dia">Dia</label>
+          <input type="number" id="evento-dia" min="1" max="31" placeholder="ex: 28">
+        </div>
+        <div class="campo">
+          <label for="evento-texto">Descrição</label>
+          <input type="text" id="evento-texto" placeholder="ex: Ponto facultativo">
+        </div>
+        <button class="btn-secundario" id="btn-add-evento">+ Adicionar</button>
+      </div>
+      <table class="lista-aniv" id="tabela-evento">
+        <thead>
+          <tr><th>Mês</th><th>Dia</th><th>Descrição</th><th></th></tr>
+        </thead>
+        <tbody id="corpo-tabela-evento"></tbody>
+      </table>
+      <p class="vazio-aviso" id="aviso-lista-vazia-evento">Nenhuma marcação inserida ainda.</p>
+    </div>
+
+    <div class="bloco-acoes">
+      <button class="btn-imprimir" id="btn-imprimir">🖨️ Salvar como PDF / Imprimir</button>
+      <button class="link-sobre" id="btn-sobre">Sobre esta ferramenta</button>
+    </div>
+  </div>
+
+  <div id="calendario-container">
+    <p class="aviso-vazio-preview no-imprimir">Configure as opções acima e clique em "Gerar calendário".</p>
+  </div>
+
+  <div class="modal-fundo no-imprimir" id="modal-sobre">
+    <div class="modal-caixa">
+      <h3>Sobre esta ferramenta</h3>
+      <p>Gerador de Calendário em PDF (A4) com a identidade visual da GEE. Inclui automaticamente feriados nacionais e municipais de Campos dos Goytacazes/RJ, além de opção para inserir aniversariantes e outras marcações (ponto facultativo, recesso, evento) antes de imprimir.</p>
+      <p>Idealizado por <strong>Alamir Rodrigues Rangel Júnior</strong> — Aux. de Secretaria · GEE<br>Implementado por <strong>Claude · Anthropic</strong></p>
+      <button class="btn-secundario fechar" id="btn-fechar-modal">Fechar</button>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  var DIAS_SEMANA = ["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
+
+  // aniversariantes[mes][dia] = [nomes...]   (mes: 1-12)
+  var aniversariantes = {};
+
+  // eventosCustom[mes][dia] = [descrições...]  -> ponto facultativo, recesso, evento, etc. (inserido manualmente)
+  var eventosCustom = {};
+
+  // feriadosAtuais[mes][dia] = [{nome, tipo}]  -> calculado automaticamente para o ano selecionado
+  var feriadosAtuais = {};
+
+  // ---------------------------------------------------------------
+  // FERIADOS (cálculo automático: nacionais + municipais de Campos dos Goytacazes/RJ)
+  // ---------------------------------------------------------------
+
+  // Feriados nacionais fixos: [mes, dia, nome]
+  var FERIADOS_NACIONAIS_FIXOS = [
+    [1, 1, "Confraternização Universal"],
+    [4, 21, "Tiradentes"],
+    [5, 1, "Dia do Trabalho"],
+    [9, 7, "Independência do Brasil"],
+    [10, 12, "Nossa Senhora Aparecida"],
+    [11, 2, "Finados"],
+    [11, 15, "Proclamação da República"],
+    [11, 20, "Dia da Consciência Negra"],
+    [12, 25, "Natal"]
+  ];
+
+  // Feriados municipais fixos de Campos dos Goytacazes/RJ: [mes, dia, nome]
+  var FERIADOS_MUNICIPAIS_FIXOS = [
+    [1, 15, "Dia de Santo Amaro (padroeiro da Baixada Campista)"],
+    [3, 28, "Aniversário de Campos dos Goytacazes"],
+    [8, 6, "Dia do Santíssimo Salvador (padroeiro da cidade)"]
+  ];
+
+  // Domingo de Páscoa pelo algoritmo gregoriano anônimo (Meeus/Jones/Butcher)
+  function calcularPascoa(ano){
+    var a = ano % 19;
+    var b = Math.floor(ano / 100);
+    var c = ano % 100;
+    var d = Math.floor(b / 4);
+    var e = b % 4;
+    var f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3);
+    var h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4);
+    var k = c % 4;
+    var l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var mesPascoa = Math.floor((h + l - 7 * m + 114) / 31); // 3=Março, 4=Abril
+    var diaPascoa = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(ano, mesPascoa - 1, diaPascoa);
+  }
+
+  function somarDias(data, dias){
+    var d = new Date(data.getTime());
+    d.setDate(d.getDate() + dias);
+    return d;
+  }
+
+  // Monta o mapa de feriados (nacionais + municipais, fixos + móveis) para um ano específico
+  function calcularFeriadosDoAno(ano){
+    var mapa = {};
+
+    function add(mes, dia, nome, tipo){
+      if (!mapa[mes]) mapa[mes] = {};
+      if (!mapa[mes][dia]) mapa[mes][dia] = [];
+      mapa[mes][dia].push({nome: nome, tipo: tipo});
+    }
+
+    FERIADOS_NACIONAIS_FIXOS.forEach(function(f){ add(f[0], f[1], f[2], "nacional"); });
+    FERIADOS_MUNICIPAIS_FIXOS.forEach(function(f){ add(f[0], f[1], f[2], "municipal"); });
+
+    // Móveis, calculados a partir da Páscoa
+    var pascoa = calcularPascoa(ano);
+    var sextaSanta = somarDias(pascoa, -2);
+    var corpusChristi = somarDias(pascoa, 60);
+
+    add(sextaSanta.getMonth() + 1, sextaSanta.getDate(), "Sexta-feira Santa", "nacional");
+    add(corpusChristi.getMonth() + 1, corpusChristi.getDate(), "Corpus Christi", "municipal");
+
+    return mapa;
+  }
+
+  // ---------------------------------------------------------------
+  // INICIALIZAÇÃO DOS SELECTS
+  // ---------------------------------------------------------------
+  function popularSelectMeses(select){
+    MESES_PT.forEach(function(nome, idx){
+      var opt = document.createElement("option");
+      opt.value = idx + 1;
+      opt.textContent = nome;
+      select.appendChild(opt);
+    });
+  }
+  var selMes = document.getElementById("sel-mes");
+  var selAnivMes = document.getElementById("aniv-mes");
+  var selEventoMes = document.getElementById("evento-mes");
+  popularSelectMeses(selMes);
+  popularSelectMeses(selAnivMes);
+  popularSelectMeses(selEventoMes);
+
+  var hoje = new Date();
+  selMes.value = hoje.getMonth() + 1;
+  selAnivMes.value = hoje.getMonth() + 1;
+  selEventoMes.value = hoje.getMonth() + 1;
+  document.getElementById("input-ano").value = hoje.getFullYear();
+
+  document.getElementById("sel-modo").addEventListener("change", function(){
+    document.getElementById("campo-mes").style.display =
+      (this.value === "mes") ? "flex" : "none";
+  });
+
+  // ---------------------------------------------------------------
+  // UTILITÁRIOS DE CALENDÁRIO
+  // ---------------------------------------------------------------
+  function diasNoMes(ano, mes){
+    return new Date(ano, mes, 0).getDate(); // mes 1-12 -> new Date(ano, mes, 0)
+  }
+
+  // Retorna matriz de semanas (semana começa no domingo), com 0 = dia fora do mês
+  function matrizDoMes(ano, mes){
+    var primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay(); // 0=Dom
+    var totalDias = diasNoMes(ano, mes);
+    var celulas = [];
+    for (var i = 0; i < primeiroDiaSemana; i++) celulas.push(0);
+    for (var d = 1; d <= totalDias; d++) celulas.push(d);
+    while (celulas.length % 7 !== 0) celulas.push(0);
+
+    var semanas = [];
+    for (var s = 0; s < celulas.length; s += 7){
+      semanas.push(celulas.slice(s, s + 7));
+    }
+    return semanas;
+  }
+
+  function escapeHTML(texto){
+    var div = document.createElement("div");
+    div.textContent = texto;
+    return div.innerHTML;
+  }
+
+  // ---------------------------------------------------------------
+  // RENDERIZAÇÃO - PÁGINA DE UM MÊS COMPLETO
+  // ---------------------------------------------------------------
+  function renderPaginaMes(ano, mes, paginaAtual, totalPaginas){
+    var nomeMes = MESES_PT[mes - 1];
+    var semanas = matrizDoMes(ano, mes);
+    var anivMes = aniversariantes[mes] || {};
+    var ferMes = feriadosAtuais[mes] || {};
+    var eventosMes = eventosCustom[mes] || {};
+
+    var html = '<div class="pagina">';
+
+    html += '<div class="cabecalho">' +
+              '<div class="linha-topo">' +
+                '<div class="org">' +
+                  '<div class="l1">SEDUCT - Secretaria de Educação, Ciência e Tecnologia</div>' +
+                  '<div class="l2">Gerência de Educação Especial - GEE</div>' +
+                  '<div class="l3">Campos dos Goytacazes/RJ</div>' +
+                '</div>' +
+                '<div class="mes-ano">' +
+                  '<div class="mes">' + nomeMes.toUpperCase() + '</div>' +
+                  '<div class="ano">' + ano + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+
+    html += '<div class="grade-semana">';
+    DIAS_SEMANA.forEach(function(d){ html += '<div>' + d + '</div>'; });
+    html += '</div>';
+
+    html += '<div class="grade-dias">';
+    semanas.forEach(function(semana){
+      semana.forEach(function(dia, colIdx){
+        if (dia === 0){
+          html += '<div class="celula vazia"></div>';
+          return;
+        }
+        var nomesDia = anivMes[dia];
+        var feriadosDia = ferMes[dia];
+        var eventosDia = eventosMes[dia];
+
+        var classes = ["celula"];
+        if (feriadosDia && feriadosDia.length) classes.push("feriado");
+        else if (eventosDia && eventosDia.length) classes.push("evento");
+        else if (nomesDia && nomesDia.length) classes.push("tem-aniversario");
+        else if (colIdx === 0 || colIdx === 6) classes.push("fim-semana");
+
+        var ehHoje = (ano === hoje.getFullYear() && mes === (hoje.getMonth() + 1) && dia === hoje.getDate());
+        if (ehHoje) classes.push("hoje");
+
+        html += '<div class="' + classes.join(" ") + '">';
+        html += '<div class="numero">' + dia + '</div>';
+        if (feriadosDia && feriadosDia.length){
+          html += '<div class="feriado-nome">' + feriadosDia.map(function(f){ return escapeHTML(f.nome); }).join(" • ") + '</div>';
+        }
+        if (eventosDia && eventosDia.length){
+          html += '<div class="evento-nome">' + eventosDia.map(escapeHTML).join(" • ") + '</div>';
+        }
+        if (nomesDia && nomesDia.length){
+          html += '<div class="nomes">' + nomesDia.map(escapeHTML).join(" • ") + '</div>';
+        }
+        html += '</div>';
+      });
+    });
+    html += '</div>';
+
+    html += '<div class="legenda">' +
+              '<span><span class="quadrado feriado"></span>Feriado</span>' +
+              '<span><span class="quadrado evento"></span>Ponto facultativo / evento</span>' +
+              '<span><span class="quadrado aniversario"></span>Aniversariante</span>' +
+            '</div>';
+
+    html += '<div class="rodape">' +
+              '<span>Gerência de Educação Especial (GEE) - SEDUCT - Campos dos Goytacazes/RJ</span>' +
+              '<span>Página ' + paginaAtual + ' de ' + totalPaginas + '</span>' +
+            '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  // ---------------------------------------------------------------
+  // RENDERIZAÇÃO - MINI MÊS (modo compacto)
+  // ---------------------------------------------------------------
+  function renderMiniMes(ano, mes){
+    var nomeMes = MESES_PT[mes - 1];
+    var semanas = matrizDoMes(ano, mes);
+    var anivMes = aniversariantes[mes] || {};
+    var ferMes = feriadosAtuais[mes] || {};
+    var eventosMes = eventosCustom[mes] || {};
+
+    var html = '<div class="mini-mes">';
+    html += '<div class="mini-titulo">' + nomeMes.toUpperCase() + '</div>';
+    html += '<div class="mini-semana">';
+    DIAS_SEMANA.forEach(function(d){ html += '<div>' + d[0] + '</div>'; });
+    html += '</div>';
+
+    html += '<div class="mini-dias">';
+    semanas.forEach(function(semana){
+      semana.forEach(function(dia, colIdx){
+        if (dia === 0){
+          html += '<div class="mini-celula"></div>';
+          return;
+        }
+        var nomesDia = anivMes[dia];
+        var feriadosDia = ferMes[dia];
+        var eventosDia = eventosMes[dia];
+
+        var classe = "mini-celula";
+        if (feriadosDia && feriadosDia.length) classe += " feriado";
+        else if (eventosDia && eventosDia.length) classe += " evento";
+        else if (colIdx === 0 || colIdx === 6) classe += " fim-semana";
+
+        var titulo = "";
+        if (feriadosDia && feriadosDia.length) titulo = feriadosDia.map(function(f){ return f.nome; }).join(" • ");
+        else if (eventosDia && eventosDia.length) titulo = eventosDia.join(" • ");
+        var atrTitulo = titulo ? ' title="' + escapeHTML(titulo) + '"' : "";
+
+        if (nomesDia && nomesDia.length){
+          html += '<div class="' + classe + '"' + atrTitulo + '><span class="bolinha">' + dia + '</span></div>';
+        } else {
+          html += '<div class="' + classe + '"' + atrTitulo + '>' + dia + '</div>';
+        }
+      });
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  // ---------------------------------------------------------------
+  // RENDERIZAÇÃO - PÁGINA ANUAL COMPACTA
+  // ---------------------------------------------------------------
+  function renderPaginaAnoCompacto(ano){
+    var html = '<div class="pagina">';
+
+    html += '<div class="cabecalho">' +
+              '<div class="linha-topo">' +
+                '<div class="org">' +
+                  '<div class="l1">SEDUCT - Secretaria de Educação, Ciência e Tecnologia</div>' +
+                  '<div class="l2">Gerência de Educação Especial - GEE</div>' +
+                  '<div class="l3">Campos dos Goytacazes/RJ</div>' +
+                '</div>' +
+                '<div class="mes-ano">' +
+                  '<div class="mes">CALENDÁRIO ANUAL</div>' +
+                  '<div class="ano">' + ano + '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>';
+
+    html += '<div class="grid-meses">';
+    for (var mes = 1; mes <= 12; mes++){
+      html += renderMiniMes(ano, mes);
+    }
+    html += '</div>';
+
+    var itens = [];
+    Object.keys(aniversariantes).map(Number).sort(function(a,b){return a-b;}).forEach(function(mes){
+      Object.keys(aniversariantes[mes]).map(Number).sort(function(a,b){return a-b;}).forEach(function(dia){
+        aniversariantes[mes][dia].forEach(function(nome){
+          itens.push(String(dia).padStart(2,"0") + "/" + String(mes).padStart(2,"0") + " - " + escapeHTML(nome));
+        });
+      });
+    });
+
+    if (itens.length){
+      var porColuna = Math.ceil(itens.length / 3);
+      var col1 = itens.slice(0, porColuna);
+      var col2 = itens.slice(porColuna, porColuna * 2);
+      var col3 = itens.slice(porColuna * 2);
+      html += '<div class="lista-aniversariantes-ano">' +
+                '<h3>ANIVERSARIANTES DO ANO</h3>' +
+                '<div class="colunas">' +
+                  '<div>' + col1.join("<br>") + '</div>' +
+                  '<div>' + col2.join("<br>") + '</div>' +
+                  '<div>' + col3.join("<br>") + '</div>' +
+                '</div>' +
+              '</div>';
+    }
+
+    html += '<div class="legenda">' +
+              '<span><span class="quadrado feriado"></span>Feriado</span>' +
+              '<span><span class="quadrado evento"></span>Ponto facultativo / evento</span>' +
+              '<span><span class="quadrado aniversario"></span>Aniversariante</span>' +
+            '</div>';
+
+    html += '<div class="rodape">' +
+              '<span>Gerência de Educação Especial (GEE) - SEDUCT - Campos dos Goytacazes/RJ</span>' +
+              '<span>Página 1 de 1</span>' +
+            '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  // ---------------------------------------------------------------
+  // GERAÇÃO PRINCIPAL
+  // ---------------------------------------------------------------
+  function gerarCalendario(){
+    var modo = document.getElementById("sel-modo").value;
+    var ano = parseInt(document.getElementById("input-ano").value, 10) || hoje.getFullYear();
+    var container = document.getElementById("calendario-container");
+    var htmlFinal = "";
+
+    var incluirFeriados = document.getElementById("chk-feriados").checked;
+    feriadosAtuais = incluirFeriados ? calcularFeriadosDoAno(ano) : {};
+
+    if (modo === "mes"){
+      var mes = parseInt(selMes.value, 10);
+      htmlFinal = renderPaginaMes(ano, mes, 1, 1);
+    } else if (modo === "compacto"){
+      htmlFinal = renderPaginaAnoCompacto(ano);
+    } else {
+      for (var m = 1; m <= 12; m++){
+        htmlFinal += renderPaginaMes(ano, m, m, 12);
+      }
+    }
+
+    container.innerHTML = htmlFinal;
+  }
+
+  // ---------------------------------------------------------------
+  // GESTÃO DE ANIVERSARIANTES
+  // ---------------------------------------------------------------
+  function atualizarTabelaAniv(){
+    var corpo = document.getElementById("corpo-tabela-aniv");
+    corpo.innerHTML = "";
+    var linhas = [];
+
+    Object.keys(aniversariantes).map(Number).sort(function(a,b){return a-b;}).forEach(function(mes){
+      Object.keys(aniversariantes[mes]).map(Number).sort(function(a,b){return a-b;}).forEach(function(dia){
+        aniversariantes[mes][dia].forEach(function(nome, idx){
+          linhas.push({mes:mes, dia:dia, nome:nome, idx:idx});
+        });
+      });
+    });
+
+    document.getElementById("aviso-lista-vazia").style.display = linhas.length ? "none" : "block";
+
+    linhas.forEach(function(item){
+      var tr = document.createElement("tr");
+
+      var tdMes = document.createElement("td");
+      tdMes.textContent = MESES_PT[item.mes - 1];
+      tr.appendChild(tdMes);
+
+      var tdDia = document.createElement("td");
+      tdDia.textContent = String(item.dia).padStart(2,"0");
+      tr.appendChild(tdDia);
+
+      var tdNome = document.createElement("td");
+      tdNome.textContent = item.nome;
+      tr.appendChild(tdNome);
+
+      var tdAcao = document.createElement("td");
+      var btn = document.createElement("button");
+      btn.className = "btn-remover";
+      btn.textContent = "remover";
+      btn.addEventListener("click", function(){
+        aniversariantes[item.mes][item.dia].splice(item.idx, 1);
+        if (aniversariantes[item.mes][item.dia].length === 0){
+          delete aniversariantes[item.mes][item.dia];
+        }
+        atualizarTabelaAniv();
+        gerarCalendario();
+      });
+      tdAcao.appendChild(btn);
+      tr.appendChild(tdAcao);
+
+      corpo.appendChild(tr);
+    });
+  }
+
+  function adicionarAniversariante(){
+    var mes = parseInt(selAnivMes.value, 10);
+    var ano = parseInt(document.getElementById("input-ano").value, 10) || hoje.getFullYear();
+    var diaInput = document.getElementById("aniv-dia");
+    var nomeInput = document.getElementById("aniv-nome");
+    var dia = parseInt(diaInput.value, 10);
+    var nome = nomeInput.value.trim();
+
+    var limite = diasNoMes(ano, mes);
+    if (!dia || dia < 1 || dia > limite){
+      alert("Informe um dia válido para " + MESES_PT[mes-1] + " (1 a " + limite + ").");
+      return;
+    }
+    if (!nome){
+      alert("Informe o nome do aniversariante.");
+      return;
+    }
+
+    if (!aniversariantes[mes]) aniversariantes[mes] = {};
+    if (!aniversariantes[mes][dia]) aniversariantes[mes][dia] = [];
+    aniversariantes[mes][dia].push(nome);
+
+    diaInput.value = "";
+    nomeInput.value = "";
+    nomeInput.focus();
+
+    atualizarTabelaAniv();
+    gerarCalendario();
+  }
+
+  // ---------------------------------------------------------------
+  // GESTÃO DE OUTRAS MARCAÇÕES (ponto facultativo, recesso, evento, etc.)
+  // ---------------------------------------------------------------
+  function atualizarTabelaEventos(){
+    var corpo = document.getElementById("corpo-tabela-evento");
+    corpo.innerHTML = "";
+    var linhas = [];
+
+    Object.keys(eventosCustom).map(Number).sort(function(a,b){return a-b;}).forEach(function(mes){
+      Object.keys(eventosCustom[mes]).map(Number).sort(function(a,b){return a-b;}).forEach(function(dia){
+        eventosCustom[mes][dia].forEach(function(texto, idx){
+          linhas.push({mes:mes, dia:dia, texto:texto, idx:idx});
+        });
+      });
+    });
+
+    document.getElementById("aviso-lista-vazia-evento").style.display = linhas.length ? "none" : "block";
+
+    linhas.forEach(function(item){
+      var tr = document.createElement("tr");
+
+      var tdMes = document.createElement("td");
+      tdMes.textContent = MESES_PT[item.mes - 1];
+      tr.appendChild(tdMes);
+
+      var tdDia = document.createElement("td");
+      tdDia.textContent = String(item.dia).padStart(2,"0");
+      tr.appendChild(tdDia);
+
+      var tdTexto = document.createElement("td");
+      tdTexto.textContent = item.texto;
+      tr.appendChild(tdTexto);
+
+      var tdAcao = document.createElement("td");
+      var btn = document.createElement("button");
+      btn.className = "btn-remover";
+      btn.textContent = "remover";
+      btn.addEventListener("click", function(){
+        eventosCustom[item.mes][item.dia].splice(item.idx, 1);
+        if (eventosCustom[item.mes][item.dia].length === 0){
+          delete eventosCustom[item.mes][item.dia];
+        }
+        atualizarTabelaEventos();
+        gerarCalendario();
+      });
+      tdAcao.appendChild(btn);
+      tr.appendChild(tdAcao);
+
+      corpo.appendChild(tr);
+    });
+  }
+
+  function adicionarEvento(){
+    var mes = parseInt(selEventoMes.value, 10);
+    var ano = parseInt(document.getElementById("input-ano").value, 10) || hoje.getFullYear();
+    var diaInput = document.getElementById("evento-dia");
+    var textoInput = document.getElementById("evento-texto");
+    var dia = parseInt(diaInput.value, 10);
+    var texto = textoInput.value.trim();
+
+    var limite = diasNoMes(ano, mes);
+    if (!dia || dia < 1 || dia > limite){
+      alert("Informe um dia válido para " + MESES_PT[mes-1] + " (1 a " + limite + ").");
+      return;
+    }
+    if (!texto){
+      alert("Informe uma descrição para a marcação (ex: Ponto facultativo).");
+      return;
+    }
+
+    if (!eventosCustom[mes]) eventosCustom[mes] = {};
+    if (!eventosCustom[mes][dia]) eventosCustom[mes][dia] = [];
+    eventosCustom[mes][dia].push(texto);
+
+    diaInput.value = "";
+    textoInput.value = "";
+    textoInput.focus();
+
+    atualizarTabelaEventos();
+    gerarCalendario();
+  }
+
+  // ---------------------------------------------------------------
+  // EVENTOS
+  // ---------------------------------------------------------------
+  document.getElementById("btn-gerar").addEventListener("click", gerarCalendario);
+  document.getElementById("btn-add-aniv").addEventListener("click", adicionarAniversariante);
+  document.getElementById("aniv-nome").addEventListener("keydown", function(e){
+    if (e.key === "Enter") adicionarAniversariante();
+  });
+  document.getElementById("btn-add-evento").addEventListener("click", adicionarEvento);
+  document.getElementById("evento-texto").addEventListener("keydown", function(e){
+    if (e.key === "Enter") adicionarEvento();
+  });
+  document.getElementById("chk-feriados").addEventListener("change", gerarCalendario);
+  document.getElementById("btn-imprimir").addEventListener("click", function(){
+    // Imprime a própria página: o painel de controle já está marcado com
+    // .no-imprimir e o @media print cuida de esconder tudo que não deve
+    // sair no PDF/impressão. Não abre nova aba/janela — funciona mesmo
+    // quando este app está incorporado dentro de um iframe (Portal da GEE).
+    window.print();
+  });
+
+  var modal = document.getElementById("modal-sobre");
+  document.getElementById("btn-sobre").addEventListener("click", function(){
+    modal.classList.add("ativo");
+  });
+  document.getElementById("btn-fechar-modal").addEventListener("click", function(){
+    modal.classList.remove("ativo");
+  });
+  modal.addEventListener("click", function(e){
+    if (e.target === modal) modal.classList.remove("ativo");
+  });
+
+  atualizarTabelaAniv();
+  atualizarTabelaEventos();
+})();
+</script>
+</body>
+</html>

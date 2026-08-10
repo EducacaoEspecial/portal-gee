@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculadora de Prazos — GEE / SEDUCT</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#EEF2F7;--surface:#fff;--surface2:#F4F6FA;--surface3:#E8EDF5;
+      --border:#D0D8E8;--border-md:#B0BDD4;--text:#111827;--text-muted:#5A6785;
+      --text-hint:#94A3B8;--accent:#1B4F9B;--accent2:#2563EB;--accent-hover:#163F7A;
+      --accent-light:#DBEAFE;--accent-mid:#93C5FD;--danger:#991B1B;
+      --success:#166534;--success-light:#DCFCE7;--warn:#92400E;--warn-light:#FEF3C7;
+      --holiday:#7C3AED;--holiday-light:#EDE9FE;
+      --radius:12px;--radius-sm:8px;--radius-xs:5px;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.08);--shadow:0 4px 12px rgba(0,0,0,.08);
+    }
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+    header{background:linear-gradient(135deg,#1B4F9B 0%,#1e40af 100%);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(27,79,155,.25);}
+    .header-inner{max-width:680px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px;}
+    .header-logo{width:40px;height:40px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .header-logo svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .header-titles{flex:1;min-width:0;}
+    .header-titles h1{font-size:15px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .header-titles p{font-size:11px;color:rgba(255,255,255,.65);}
+    .btn-sobre{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border:1.5px solid rgba(255,255,255,.35);border-radius:20px;background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+    .btn-sobre svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .main{max-width:680px;margin:0 auto;padding:20px 14px 60px;display:flex;flex-direction:column;gap:14px;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);}
+    .card-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    .card-icon{width:32px;height:32px;background:var(--accent-light);border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .card-icon svg{width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .card-title-text{font-size:13px;font-weight:700;color:var(--text);}
+    .card-subtitle{font-size:11px;color:var(--text-muted);}
+    .field{margin-bottom:12px;}
+    .field:last-child{margin-bottom:0;}
+    .field label{display:block;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+    .field input,.field select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;color:var(--text);background:var(--surface);font-family:inherit;outline:none;}
+    .field input:focus,.field select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+    .field-row{display:grid;gap:10px;}
+    .field-row.two{grid-template-columns:1fr 1fr;}
+    @media(max-width:420px){.field-row.two{grid-template-columns:1fr;}}
+    .opt-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+    .opt-chip{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;font-size:13px;font-weight:500;color:var(--text-muted);cursor:pointer;user-select:none;background:var(--surface);transition:all .15s;}
+    .opt-chip.sel{border-color:var(--accent2);color:var(--accent);background:var(--accent-light);}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid var(--border-md);background:var(--surface);color:var(--text);font-family:inherit;line-height:1;width:100%;}
+    .btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(27,79,155,.25);}
+    .btn-primary:hover{background:var(--accent-hover);}
+    .btn-ghost{border-color:transparent;background:transparent;color:var(--text-muted);}
+    .btn-ghost:hover{background:var(--surface3);color:var(--text);}
+    .resultado{display:none;background:linear-gradient(135deg,#1B4F9B 0%,#1e40af 100%);border-radius:var(--radius);padding:20px 22px;color:#fff;box-shadow:var(--shadow);}
+    .resultado.show{display:block;}
+    .res-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.65);margin-bottom:6px;}
+    .res-data{font-size:30px;font-weight:800;color:#fff;margin-bottom:4px;}
+    .res-dia{font-size:13px;color:rgba(255,255,255,.75);margin-bottom:14px;}
+    .res-stats{display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);}
+    .stat-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:#fff;}
+    .res-aviso{margin-top:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:5px;padding:8px 12px;font-size:12px;color:rgba(255,255,255,.85);display:none;}
+    .res-aviso.show{display:block;}
+    .tl-wrap{display:flex;flex-direction:column;gap:0;}
+    .tl-item{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border);}
+    .tl-item:last-child{border-bottom:none;}
+    .tl-dot{width:26px;height:26px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px;}
+    .tl-dot.util{background:var(--success-light);color:var(--success);border:1.5px solid #86EFAC;}
+    .tl-dot.fds{background:var(--surface3);color:var(--text-hint);border:1.5px solid var(--border);}
+    .tl-dot.feriado{background:var(--holiday-light);color:var(--holiday);border:1.5px solid #C4B5FD;}
+    .tl-dot.destino{background:var(--accent);color:#fff;border:1.5px solid var(--accent-hover);}
+    .tl-date{font-size:13px;font-weight:600;color:var(--text);}
+    .tl-tag{font-size:11px;color:var(--text-muted);}
+    .tl-tag.fer{color:var(--holiday);font-weight:600;}
+    .tl-tag.lim{color:var(--accent);font-weight:700;}
+    .tl-num{margin-left:auto;font-size:12px;font-weight:700;color:var(--text-hint);align-self:center;flex-shrink:0;}
+    .legenda{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+    .leg{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);}
+    .leg-dot{width:10px;height:10px;border-radius:50%;}
+    .feriado-list{display:flex;flex-direction:column;gap:6px;}
+    .feriado-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;}
+    .fer-date{font-weight:700;color:var(--accent);min-width:80px;}
+    .fer-nome{color:var(--text);flex:1;}
+    .fer-tipo{font-size:11px;color:var(--text-hint);padding:2px 8px;background:var(--surface3);border-radius:10px;}
+    .tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px;}
+    .tab-btn{flex:1;padding:10px 8px;font-size:12.5px;font-weight:600;border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-family:inherit;border-bottom:2.5px solid transparent;}
+    .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent2);}
+    .tab-pane{display:none;}
+    .tab-pane.active{display:block;}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.2);width:100%;max-width:460px;overflow:hidden;}
+    .modal-header{background:linear-gradient(135deg,#1B4F9B 0%,#1e40af 100%);padding:20px 22px 16px;}
+    .modal-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .modal-app-name{font-size:15px;font-weight:700;color:#fff;}
+    .modal-version{font-size:11px;color:rgba(255,255,255,.55);background:rgba(255,255,255,.12);border-radius:10px;padding:2px 9px;}
+    .modal-close{background:rgba(255,255,255,.15);border:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:16px;}
+    .modal-org{font-size:11px;color:rgba(255,255,255,.65);}
+    .modal-body{padding:20px 22px;}
+    .modal-desc{font-size:13.5px;color:#334155;line-height:1.7;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E2E8F0;}
+    .modal-credits{display:flex;flex-direction:column;gap:12px;}
+    .credit-row{display:flex;align-items:center;gap:12px;}
+    .credit-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+    .credit-avatar svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .credit-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:1px;}
+    .credit-name{font-size:13.5px;font-weight:700;color:#0F172A;}
+    .credit-role{font-size:12px;color:#64748B;}
+    .modal-footer{padding:12px 22px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:11.5px;color:#94A3B8;text-align:center;}
+    .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#0F172A;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:all .3s ease;z-index:9999;max-width:90vw;text-align:center;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </div>
+    <div class="header-titles">
+      <h1>Calculadora de Prazos</h1>
+      <p>Gerência de Educação Especial — GEE / SEDUCT</p>
+    </div>
+    <button class="btn-sobre" onclick="abrirSobre()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>Sobre</span>
+    </button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="card">
+    <div class="tab-bar">
+      <button class="tab-btn active" id="btnTabCalc" onclick="switchTab(0)">Calcular prazo</button>
+      <button class="tab-btn" id="btnTabFer" onclick="switchTab(1)">Feriados do ano</button>
+    </div>
+
+    <div class="tab-pane active" id="paneCalc">
+      <div class="field-row two">
+        <div class="field">
+          <label>Data inicial</label>
+          <input type="date" id="dataInicio">
+        </div>
+        <div class="field">
+          <label>Dias úteis</label>
+          <input type="number" id="diasUteis" min="1" max="365" placeholder="Ex: 10">
+        </div>
+      </div>
+      <div class="field">
+        <label>Contagem</label>
+        <div class="opt-group">
+          <div class="opt-chip sel" id="chipIncluir" onclick="selChip('tipo','incluir')">A partir da data inicial</div>
+          <div class="opt-chip" id="chipExcluir" onclick="selChip('tipo','excluir')">Excluir a data inicial</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Feriados</label>
+        <div class="opt-group">
+          <div class="opt-chip sel" id="chipNac" onclick="selChip('fer','nac')">Apenas nacionais</div>
+          <div class="opt-chip" id="chipMun" onclick="selChip('fer','mun')">+ Municipais de Campos</div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:4px">
+        <button class="btn btn-primary" id="btnCalc" onclick="calcular()">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Calcular prazo
+        </button>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="paneFer">
+      <div class="feriado-list" id="feriadoList"></div>
+    </div>
+  </div>
+
+  <div class="resultado" id="resultado">
+    <div class="res-label">Data limite</div>
+    <div class="res-data" id="resData"></div>
+    <div class="res-dia" id="resDia"></div>
+    <div class="res-stats">
+      <div class="stat-pill" id="spUteis"></div>
+      <div class="stat-pill" id="spFds"></div>
+      <div class="stat-pill" id="spFer" style="display:none"></div>
+      <div class="stat-pill" id="spTotal"></div>
+    </div>
+    <div class="res-aviso" id="resAviso"></div>
+  </div>
+
+  <div class="card" id="cardTl" style="display:none">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </div>
+      <div>
+        <div class="card-title-text">Calendário do prazo</div>
+        <div class="card-subtitle">Todos os dias do período</div>
+      </div>
+    </div>
+    <div class="tl-wrap" id="tlWrap"></div>
+    <div class="legenda">
+      <div class="leg"><div class="leg-dot" style="background:#86EFAC"></div>Dia útil</div>
+      <div class="leg"><div class="leg-dot" style="background:#CBD5E1"></div>Fim de semana</div>
+      <div class="leg"><div class="leg-dot" style="background:#C4B5FD"></div>Feriado</div>
+      <div class="leg"><div class="leg-dot" style="background:#1B4F9B"></div>Data limite</div>
+    </div>
+  </div>
+
+  <div id="btnNovaWrap" style="display:none">
+    <button class="btn btn-ghost" onclick="novaConta()">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.81"/></svg>
+      Nova consulta
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalSobre" onclick="fecharSobre(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-top">
+        <div><div class="modal-app-name">Calculadora de Prazos</div><div class="modal-version">v1.0</div></div>
+        <button class="modal-close" onclick="fecharSobre()">x</button>
+      </div>
+      <div class="modal-org">GEE &nbsp;·&nbsp; SEDUCT &nbsp;·&nbsp; Campos dos Goytacazes / RJ</div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">Calcula prazos em dias uteis descontando fins de semana e feriados. Funciona 100% offline.</p>
+      <div class="modal-credits">
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#1B4F9B;padding:0;">
+            <img src="data:image/jpeg;base64,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" alt="Alamir" style="width:100%;height:100%;object-fit:cover;display:block;">
+          </div>
+          <div>
+            <div class="credit-label">Idealizador</div>
+            <div class="credit-name">Alamir Rodrigues Rangel Junior</div>
+            <div class="credit-role">Auxiliar de Secretaria - GEE / SEDUCT</div>
+          </div>
+        </div>
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#0F172A;">
+            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <div>
+            <div class="credit-label">Implementado por</div>
+            <div class="credit-name">Claude AI</div>
+            <div class="credit-role">Anthropic</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">Campos dos Goytacazes, RJ &nbsp;·&nbsp; SEDUCT / GEE</div>
+  </div>
+</div>
+
+<div id="toastEl" class="toast"></div>
+
+<script>
+// estado
+var tipoVal = 'incluir';
+var ferVal  = 'nac';
+
+// data inicial = hoje
+document.getElementById('dataInicio').value = new Date().toISOString().slice(0,10);
+
+function selChip(grupo, val) {
+  if (grupo === 'tipo') {
+    tipoVal = val;
+    document.getElementById('chipIncluir').className = 'opt-chip' + (val === 'incluir' ? ' sel' : '');
+    document.getElementById('chipExcluir').className = 'opt-chip' + (val === 'excluir' ? ' sel' : '');
+  } else {
+    ferVal = val;
+    document.getElementById('chipNac').className = 'opt-chip' + (val === 'nac' ? ' sel' : '');
+    document.getElementById('chipMun').className = 'opt-chip' + (val === 'mun' ? ' sel' : '');
+  }
+}
+
+function switchTab(idx) {
+  document.getElementById('btnTabCalc').className = 'tab-btn' + (idx === 0 ? ' active' : '');
+  document.getElementById('btnTabFer').className  = 'tab-btn' + (idx === 1 ? ' active' : '');
+  document.getElementById('paneCalc').className = 'tab-pane' + (idx === 0 ? ' active' : '');
+  document.getElementById('paneFer').className  = 'tab-pane' + (idx === 1 ? ' active' : '');
+  if (idx === 1) renderFeriados();
+}
+
+// feriados nacionais fixos
+var ferNacFixos = [
+  {d:1,  m:1,  n:'Confraternizacao Universal',  t:'Nacional'},
+  {d:21, m:4,  n:'Tiradentes',                  t:'Nacional'},
+  {d:1,  m:5,  n:'Dia do Trabalho',             t:'Nacional'},
+  {d:7,  m:9,  n:'Independencia do Brasil',     t:'Nacional'},
+  {d:12, m:10, n:'Nossa Sra. Aparecida',         t:'Nacional'},
+  {d:2,  m:11, n:'Finados',                      t:'Nacional'},
+  {d:15, m:11, n:'Proclamacao da Republica',    t:'Nacional'},
+  {d:20, m:11, n:'Consciencia Negra',           t:'Nacional'},
+  {d:25, m:12, n:'Natal',                        t:'Nacional'}
+];
+
+var ferMunFixos = [
+  {d:20, m:1,  n:'Sao Sebastiao (padroeiro RJ)', t:'Estadual'},
+  {d:23, m:4,  n:'Dia de Sao Jorge',             t:'Estadual'},
+  {d:28, m:3,  n:'Aniversario de Campos',        t:'Municipal'},
+  {d:13, m:6,  n:'Santo Antonio (padroeiro)',    t:'Municipal'},
+  {d:8,  m:12, n:'Nossa Sra. da Conceicao',      t:'Municipal'}
+];
+
+function calcPascoa(ano) {
+  var a=ano%19, b=Math.floor(ano/100), c=ano%100;
+  var d2=Math.floor(b/4), e=b%4, f=Math.floor((b+8)/25);
+  var g=Math.floor((b-f+1)/3), h=(19*a+b-d2-g+15)%30;
+  var i=Math.floor(c/4), k=c%4;
+  var l=(32+2*e+2*i-h-k)%7;
+  var m2=Math.floor((a+11*h+22*l)/451);
+  var mes=Math.floor((h+l-7*m2+114)/31);
+  var dia=((h+l-7*m2+114)%31)+1;
+  return new Date(ano, mes-1, dia);
+}
+
+function addDias(d, n) {
+  var r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+function getFeriados(ano, incluirMun) {
+  var mapa = {};
+  function add(dt, nome) {
+    var k = dt.getFullYear() + '-' + pad(dt.getMonth()+1) + '-' + pad(dt.getDate());
+    mapa[k] = nome;
+  }
+  ferNacFixos.forEach(function(f) { add(new Date(ano, f.m-1, f.d), f.n); });
+  var p = calcPascoa(ano);
+  add(addDias(p,-48), 'Segunda de Carnaval');
+  add(addDias(p,-47), 'Terca de Carnaval');
+  add(addDias(p,-2),  'Paixao de Cristo');
+  add(p,              'Pascoa');
+  add(addDias(p,60),  'Corpus Christi');
+  if (incluirMun) {
+    ferMunFixos.forEach(function(f) { add(new Date(ano, f.m-1, f.d), f.n); });
+  }
+  return mapa;
+}
+
+function pad(n) { return n < 10 ? '0'+n : ''+n; }
+
+function chave(d) {
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+
+function calcular() {
+  var dataStr = document.getElementById('dataInicio').value;
+  var dias    = parseInt(document.getElementById('diasUteis').value);
+
+  if (!dataStr) { toast('Informe a data inicial.'); return; }
+  if (!dias || dias < 1) { toast('Informe o numero de dias uteis.'); return; }
+
+  var incluirMun   = (ferVal === 'mun');
+  var excluirInicio = (tipoVal === 'excluir');
+
+  var inicio = new Date(dataStr + 'T12:00:00');
+  var anos   = [inicio.getFullYear(), inicio.getFullYear()+1];
+  var mapa1  = getFeriados(anos[0], incluirMun);
+  var mapa2  = getFeriados(anos[1], incluirMun);
+  var mapa   = Object.assign({}, mapa1, mapa2);
+
+  var diasInfo = [];
+  var uteisCont = 0;
+  var fdsCount = 0;
+  var ferCount = 0;
+  var atual = new Date(inicio);
+
+  if (excluirInicio) {
+    atual.setDate(atual.getDate() + 1);
+  }
+
+  // primeiro dia (se nao excluir)
+  if (!excluirInicio) {
+    var k0 = chave(inicio);
+    var dow0 = inicio.getDay();
+    var tipo0 = 'util';
+    if (dow0 === 0 || dow0 === 6) { tipo0 = 'fds'; fdsCount++; }
+    else if (mapa[k0]) { tipo0 = 'feriado'; ferCount++; }
+    else { uteisCont = 1; }
+    diasInfo.push({data: new Date(inicio), tipo: tipo0, num: tipo0==='util'?1:null, fer: mapa[k0]});
+    atual = new Date(inicio);
+    atual.setDate(atual.getDate() + 1);
+  }
+
+  while (uteisCont < dias) {
+    var k = chave(atual);
+    var dow = atual.getDay();
+    var tipo = 'util';
+    if (dow === 0 || dow === 6) { tipo = 'fds'; fdsCount++; }
+    else if (mapa[k]) { tipo = 'feriado'; ferCount++; }
+    else { uteisCont++; }
+    diasInfo.push({data: new Date(atual), tipo: tipo, num: tipo==='util'?uteisCont:null, fer: mapa[k]});
+    atual.setDate(atual.getDate() + 1);
+  }
+
+  // data final = ultimo util
+  var ultimoUtil = null;
+  for (var i = diasInfo.length-1; i >= 0; i--) {
+    if (diasInfo[i].tipo === 'util') { ultimoUtil = diasInfo[i].data; break; }
+  }
+
+  // render resultado
+  var meses = ['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var semana = ['domingo','segunda-feira','terca-feira','quarta-feira','quinta-feira','sexta-feira','sabado'];
+  var df = ultimoUtil;
+  document.getElementById('resData').textContent = pad(df.getDate()) + '/' + pad(df.getMonth()+1) + '/' + df.getFullYear();
+  document.getElementById('resDia').textContent  = semana[df.getDay()] + ', ' + df.getDate() + ' de ' + meses[df.getMonth()] + ' de ' + df.getFullYear();
+  document.getElementById('spUteis').textContent  = dias + (dias===1?' dia util':' dias uteis');
+  document.getElementById('spFds').textContent    = fdsCount + (fdsCount===1?' fim de semana':' fins de semana');
+  document.getElementById('spTotal').textContent  = diasInfo.length + (diasInfo.length===1?' dia corrido':' dias corridos');
+
+  var spFer = document.getElementById('spFer');
+  if (ferCount > 0) {
+    spFer.textContent = ferCount + (ferCount===1?' feriado':' feriados');
+    spFer.style.display = 'inline-flex';
+  } else {
+    spFer.style.display = 'none';
+  }
+
+  var aviso = document.getElementById('resAviso');
+  if (ferCount > 0) {
+    aviso.textContent = 'Atencao: ' + ferCount + (ferCount===1?' feriado foi descontado.':' feriados foram descontados.');
+    aviso.className = 'res-aviso show';
+  } else {
+    aviso.className = 'res-aviso';
+  }
+
+  document.getElementById('resultado').className = 'resultado show';
+
+  // timeline
+  var chaveDestino = chave(ultimoUtil);
+  var semAb = ['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
+  var html = '';
+  for (var j = 0; j < diasInfo.length; j++) {
+    var d = diasInfo[j];
+    var isDestino = chave(d.data) === chaveDestino;
+    var dotClass  = isDestino ? 'destino' : d.tipo;
+    var dotLabel  = isDestino ? '#' : (d.tipo==='util' ? (d.num||'') : (d.tipo==='feriado'?'*':'-'));
+    var dataFmt   = pad(d.data.getDate()) + '/' + pad(d.data.getMonth()+1) + ' (' + semAb[d.data.getDay()] + ')';
+    var tagCls    = isDestino ? 'tl-tag lim' : (d.tipo==='feriado' ? 'tl-tag fer' : 'tl-tag');
+    var tagTxt    = isDestino ? 'Data limite' : (d.tipo==='fds' ? (d.data.getDay()===0?'Domingo':'Sabado') : (d.tipo==='feriado' ? (d.fer||'Feriado') : 'Dia util'));
+    var numHtml   = d.tipo==='util' ? '<span class="tl-num">' + d.num + '&ordm;</span>' : '';
+    html += '<div class="tl-item"><div class="tl-dot ' + dotClass + '">' + dotLabel + '</div><div style="flex:1"><div class="tl-date">' + dataFmt + '</div><div class="' + tagCls + '">' + tagTxt + '</div></div>' + numHtml + '</div>';
+  }
+  document.getElementById('tlWrap').innerHTML = html;
+  document.getElementById('cardTl').style.display = 'block';
+  document.getElementById('btnNovaWrap').style.display = 'block';
+  document.getElementById('cardTl').scrollIntoView({behavior:'smooth'});
+}
+
+function novaConta() {
+  document.getElementById('resultado').className = 'resultado';
+  document.getElementById('cardTl').style.display = 'none';
+  document.getElementById('btnNovaWrap').style.display = 'none';
+  document.getElementById('diasUteis').value = '';
+  document.getElementById('dataInicio').value = new Date().toISOString().slice(0,10);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderFeriados() {
+  var ano = new Date().getFullYear();
+  var todos = [];
+  ferNacFixos.forEach(function(f) { todos.push({data: new Date(ano, f.m-1, f.d), n: f.n, t: f.t}); });
+  var p = calcPascoa(ano);
+  [[addDias(p,-48),'Segunda de Carnaval','Nacional'],[addDias(p,-47),'Terca de Carnaval','Nacional'],
+   [addDias(p,-2),'Paixao de Cristo','Nacional'],[p,'Pascoa','Nacional'],[addDias(p,60),'Corpus Christi','Nacional']
+  ].forEach(function(x){ todos.push({data:x[0],n:x[1],t:x[2]}); });
+  ferMunFixos.forEach(function(f) { todos.push({data: new Date(ano, f.m-1, f.d), n: f.n, t: f.t}); });
+  todos.sort(function(a,b){return a.data-b.data;});
+  var dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
+  var html = '';
+  todos.forEach(function(f) {
+    html += '<div class="feriado-item"><span class="fer-date">' + pad(f.data.getDate()) + '/' + pad(f.data.getMonth()+1) + ' (' + dias[f.data.getDay()] + ')</span><span class="fer-nome">' + f.n + '</span><span class="fer-tipo">' + f.t + '</span></div>';
+  });
+  document.getElementById('feriadoList').innerHTML = html;
+}
+
+function abrirSobre() { document.getElementById('modalSobre').className = 'modal-overlay open'; document.body.style.overflow='hidden'; }
+function fecharSobre(e) {
+  if (e && e.target !== document.getElementById('modalSobre')) return;
+  document.getElementById('modalSobre').className = 'modal-overlay'; document.body.style.overflow='';
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') fecharSobre(); });
+
+function toast(msg) {
+  var t = document.getElementById('toastEl');
+  t.textContent = msg; t.className = 'toast show';
+  setTimeout(function(){ t.className = 'toast'; }, 3000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Presença — GEE / SEDUCT</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #EEF2F7;
+      --surface:      #FFFFFF;
+      --surface2:     #F4F6FA;
+      --surface3:     #E8EDF5;
+      --border:       #D0D8E8;
+      --border-md:    #B0BDD4;
+      --text:         #111827;
+      --text-muted:   #5A6785;
+      --text-hint:    #94A3B8;
+      --accent:       #1B4F9B;
+      --accent2:      #2563EB;
+      --accent-hover: #163F7A;
+      --accent-light: #DBEAFE;
+      --accent-mid:   #93C5FD;
+      --danger:       #991B1B;
+      --danger-light: #FEE2E2;
+      --success:      #166534;
+      --success-light:#DCFCE7;
+      --radius:       12px;
+      --radius-sm:    8px;
+      --radius-xs:    5px;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow:       0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ═══════════════ HEADER ═══════════════ */
+    header {
+      background: linear-gradient(135deg, #1B4F9B 0%, #1E3A8A 60%, #1e40af 100%);
+      padding: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px rgba(27,79,155,0.25);
+    }
+
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo {
+      width: 42px; height: 42px;
+      background: rgba(255,255,255,0.15);
+      border: 1.5px solid rgba(255,255,255,0.25);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      backdrop-filter: blur(4px);
+    }
+
+    .header-logo svg {
+      width: 22px; height: 22px;
+      stroke: #fff; fill: none;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .header-titles { flex: 1; }
+
+    .header-titles h1 {
+      font-size: 15px; font-weight: 700;
+      color: #fff; letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+
+    .header-titles p {
+      font-size: 11px; color: rgba(255,255,255,0.65);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .header-badge {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+    }
+
+    .badge-org {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .badge-device {
+      font-size: 10px; color: rgba(255,255,255,0.5);
+    }
+
+    @media (max-width: 480px) {
+      .header-logo { width: 34px; height: 34px; }
+      .header-logo svg { width: 18px; height: 18px; }
+      .header-titles h1 { font-size: 13px; }
+      .header-titles p { display: none; }
+      .header-badge { display: none; }
+      .btn-sobre { padding: 5px 11px; font-size: 11px; }
+    }
+
+    /* ═══════════════ LAYOUT ═══════════════ */
+    .main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .col-full  { grid-column: 1 / -1; }
+    .col-left  { grid-column: 1; }
+    .col-right { grid-column: 2; }
+
+    @media (max-width: 640px) {
+      .main { grid-template-columns: 1fr; }
+      .col-left, .col-right { grid-column: 1; }
+    }
+
+    /* ═══════════════ CARDS ═══════════════ */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-icon {
+      width: 32px; height: 32px;
+      background: var(--accent-light);
+      border-radius: var(--radius-xs);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-icon svg {
+      width: 16px; height: 16px;
+      stroke: var(--accent); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .card-title-text {
+      font-size: 13px; font-weight: 600;
+      color: var(--text);
+    }
+
+    .card-subtitle {
+      font-size: 11px; color: var(--text-muted);
+    }
+
+    /* ═══════════════ FIELDS ═══════════════ */
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+
+    .field label {
+      display: block;
+      font-size: 11px; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px; color: var(--text);
+      background: var(--surface);
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+
+    .field textarea {
+      resize: vertical; min-height: 90px; line-height: 1.6;
+    }
+
+    .field-row {
+      display: grid; gap: 10px;
+    }
+    .field-row.two   { grid-template-columns: 1fr 1fr; }
+    .field-row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+    @media (max-width: 480px) {
+      .field-row.two,
+      .field-row.three { grid-template-columns: 1fr; }
+    }
+
+    /* ═══════════════ TAG INPUT ═══════════════ */
+    .tag-box {
+      min-height: 50px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
+      display: flex; flex-wrap: wrap; gap: 5px; align-items: flex-start;
+      cursor: text; background: var(--surface);
+      transition: border-color .15s, box-shadow .15s;
+    }
+
+    .tag-box:focus-within {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--accent-light);
+      color: var(--accent);
+      border: 1px solid var(--accent-mid);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 12.5px; font-weight: 500; line-height: 1.7;
+    }
+
+    .tag-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--accent); font-size: 15px; line-height: 1;
+      padding: 0; opacity: .5; display: flex; align-items: center;
+      transition: opacity .1s;
+    }
+    .tag-remove:hover { opacity: 1; color: var(--danger); }
+
+    .tag-input {
+      border: none; outline: none; background: transparent;
+      font-size: 14px; color: var(--text);
+      flex: 1; min-width: 140px; padding: 3px 4px; font-family: inherit;
+    }
+
+    .tag-hint {
+      font-size: 11.5px; color: var(--text-hint);
+      margin-top: 5px; display: flex; align-items: center; gap: 4px;
+    }
+
+    /* ═══════════════ COUNTER PILL ═══════════════ */
+    .counter-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent-light);
+      border: 1px solid var(--accent-mid);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: var(--accent);
+    }
+
+    .counter-pill svg {
+      width: 13px; height: 13px;
+      stroke: var(--accent); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ═══════════════ OPTS ═══════════════ */
+    .opt-group {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+
+    .opt-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px; font-weight: 500; color: var(--text-muted);
+      cursor: pointer; user-select: none;
+      transition: border-color .15s, color .15s, background .15s;
+      background: var(--surface);
+    }
+
+    .opt-chip input { display: none; }
+
+    .opt-chip:has(input:checked) {
+      border-color: var(--accent2);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .opt-chip svg {
+      width: 13px; height: 13px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .check-icon { display: none; }
+    .opt-chip:has(input:checked) .check-icon { display: block; }
+
+    /* fallback for browsers without :has */
+    .opt-chip.selected {
+      border-color: var(--accent2);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* ═══════════════ BUTTONS ═══════════════ */
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid var(--border-md);
+      background: var(--surface); color: var(--text);
+      transition: background .15s, border-color .15s, box-shadow .15s;
+      font-family: inherit;
+      line-height: 1;
+    }
+
+    .btn:hover { background: var(--surface2); border-color: var(--border-md); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .btn svg {
+      width: 15px; height: 15px;
+      stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(27,79,155,0.25);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      box-shadow: 0 4px 12px rgba(27,79,155,0.3);
+    }
+
+    .btn-outline-accent {
+      border-color: var(--accent-mid);
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+    .btn-outline-accent:hover { background: #BFDBFE; }
+
+    .btn-danger {
+      border-color: #FECACA;
+      color: var(--danger);
+      background: var(--surface);
+    }
+    .btn-danger:hover { background: var(--danger-light); }
+
+    .btn-ghost {
+      border-color: transparent; background: transparent;
+      color: var(--text-muted); padding: 8px 10px;
+    }
+    .btn-ghost:hover { background: var(--surface3); color: var(--text); }
+
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* spinner */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      display: none; flex-shrink: 0;
+    }
+    .btn-primary.loading .spinner { display: block; }
+    .btn-primary.loading .btn-icon { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ═══════════════ DIVIDER ═══════════════ */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+
+    /* ═══════════════ IMPORT PANEL ═══════════════ */
+    .import-panel {
+      display: none;
+      margin-top: 14px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .import-panel.open { display: block; }
+
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px 14px;
+      font-size: 12.5px; font-weight: 600;
+      border: none; background: transparent;
+      cursor: pointer; color: var(--text-muted);
+      font-family: inherit;
+      border-bottom: 2.5px solid transparent;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn svg {
+      width: 13px; height: 13px; stroke: currentColor; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface2); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent2); background: #fff; }
+
+    .tab-pane { padding: 14px 16px; }
+
+    /* drop zone */
+    #dropZone {
+      border: 2px dashed var(--border-md);
+      border-radius: var(--radius-sm);
+      padding: 28px 16px;
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    #dropZone.dragover {
+      border-color: var(--accent2);
+      background: var(--accent-light);
+    }
+    #dropZone:hover { border-color: var(--accent2); background: var(--accent-light); }
+
+    #dropZone svg {
+      width: 36px; height: 36px;
+      stroke: var(--text-hint); fill: none;
+      stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+      margin-bottom: 10px;
+    }
+
+    #filePreview { display: none; }
+
+    .file-info {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--success-light);
+      border: 1px solid #86EFAC;
+      border-radius: var(--radius-xs);
+      padding: 8px 12px;
+      margin-bottom: 10px;
+    }
+    .file-info svg {
+      width: 14px; height: 14px; stroke: var(--success); fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0;
+    }
+    .file-info-name { font-size: 13px; font-weight: 600; color: var(--success); }
+    .file-info-count { font-size: 12px; color: #166534; opacity: .75; }
+
+    .file-names-preview {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 8px 12px;
+      max-height: 130px; overflow-y: auto;
+      font-size: 12.5px; color: var(--text-muted); line-height: 1.9;
+    }
+
+    /* ═══════════════ ACTION BAR ═══════════════ */
+    .action-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .action-bar-label {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    /* ═══════════════ PREVIEW ═══════════════ */
+    #previewWrap { display: none; }
+    #previewWrap.open { display: block; }
+
+    .preview-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .preview-toolbar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-title {
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    #previewFrame {
+      width: 100%; height: 540px;
+      border: none; display: block;
+    }
+
+    /* ═══════════════ TOAST ═══════════════ */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #0F172A; color: #fff;
+      padding: 11px 22px; border-radius: 24px;
+      font-size: 13px; font-weight: 500;
+      opacity: 0; transition: all .3s cubic-bezier(.34,1.56,.64,1);
+      z-index: 9999;
+      max-width: 90vw; text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast-icon {
+      width: 16px; height: 16px; flex-shrink: 0;
+      stroke: #4ADE80; fill: none;
+      stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ═══════════════ SECTION LABEL ═══════════════ */
+    .section-label {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--text-hint);
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+
+
+    .btn-sobre {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 13px;
+      border: 1.5px solid rgba(255,255,255,0.35);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.12);
+      color: #fff; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: background .15s, border-color .15s;
+      backdrop-filter: blur(4px);
+    }
+    .btn-sobre:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.55); }
+
+    /* modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1000;
+      align-items: center; justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(2px);
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+      width: 100%; max-width: 480px;
+      overflow: hidden;
+      animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    @keyframes modalIn {
+      from { opacity:0; transform: scale(0.92) translateY(12px); }
+      to   { opacity:1; transform: scale(1)    translateY(0); }
+    }
+
+    .modal-header {
+      background: linear-gradient(135deg, #1B4F9B 0%, #1e40af 100%);
+      padding: 20px 22px 16px;
+    }
+
+    .modal-header-top {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .modal-app-name {
+      font-size: 15px; font-weight: 700; color: #fff;
+    }
+
+    .modal-version {
+      font-size: 11px; color: rgba(255,255,255,0.55);
+      background: rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 2px 9px;
+    }
+
+    .modal-close {
+      background: rgba(255,255,255,0.15); border: none;
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #fff; font-size: 16px; line-height: 1;
+      transition: background .15s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.3); }
+
+    .modal-org {
+      font-size: 11px; color: rgba(255,255,255,0.65); letter-spacing: 0.04em;
+    }
+
+    .modal-body {
+      padding: 20px 22px;
+    }
+
+    .modal-desc {
+      font-size: 13.5px; color: #334155; line-height: 1.7;
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid #E2E8F0;
+    }
+
+    .modal-credits {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .credit-row {
+      display: flex; align-items: center; gap: 12px;
+    }
+
+    .credit-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .credit-avatar svg {
+      width: 18px; height: 18px; stroke: #fff; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .credit-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #94A3B8; margin-bottom: 1px;
+    }
+
+    .credit-name {
+      font-size: 13.5px; font-weight: 700; color: #0F172A;
+    }
+
+    .credit-role {
+      font-size: 12px; color: #64748B;
+    }
+
+    .modal-footer {
+      padding: 12px 22px;
+      background: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
+      font-size: 11.5px; color: #94A3B8; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════ HEADER ══════════════════════ -->
+<header>
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+    </div>
+    <div class="header-titles">
+      <h1>Gerador de Lista de Presença</h1>
+      <p>Gerência de Educação Especial — GEE</p>
+    </div>
+    <button class="btn-sobre" onclick="abrirSobre()" title="Sobre o aplicativo">
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Sobre
+    </button>
+    <div class="header-badge">
+      <span class="badge-org">SEDUCT / GEE</span>
+      <span class="badge-device" id="deviceBadge">carregando…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════ MAIN GRID ══════════════════════ -->
+<div class="main">
+
+  <!-- ── DADOS DO EVENTO (coluna esquerda) ── -->
+  <div class="card col-left">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div>
+        <div class="card-title-text">Dados do evento</div>
+        <div class="card-subtitle">Informações que aparecerão no documento</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Título / evento</label>
+      <input type="text" id="titulo" placeholder="Ex: Reunião Pedagógica — AEE" value="Reunião Pedagógica — AEE">
+    </div>
+    <div class="field">
+      <label>Subtítulo <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+      <input type="text" id="subtitulo" placeholder="Ex: Formação continuada de professores">
+    </div>
+    <div class="field-row three">
+      <div class="field">
+        <label>Data</label>
+        <input type="text" id="data" placeholder="DD/MM/AAAA">
+      </div>
+      <div class="field">
+        <label>Horário</label>
+        <input type="text" id="horario" placeholder="14h às 17h">
+      </div>
+      <div class="field" style="grid-column: span 1">
+        <label>Local</label>
+        <input type="text" id="local" placeholder="Sala de reuniões">
+      </div>
+    </div>
+    <div class="field">
+      <label>Rodapé <span style="font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></label>
+      <input type="text" id="rodape" placeholder="Ex: Campos dos Goytacazes, ___/___/______">
+    </div>
+  </div>
+
+  <!-- ── CONFIGURAÇÕES (coluna direita) ── -->
+  <div class="card col-right">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <div>
+        <div class="card-title-text">Configurações</div>
+        <div class="card-subtitle">Formato e campos da lista</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Colunas de assinatura</label>
+      <div class="opt-group">
+        <label class="opt-chip">
+          <input type="radio" name="cols" value="1">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          1 coluna
+        </label>
+        <label class="opt-chip">
+          <input type="radio" name="cols" value="2" checked>
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          2 colunas
+        </label>
+        <label class="opt-chip">
+          <input type="radio" name="cols" value="3">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          3 colunas
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Campos extras por participante</label>
+      <div class="opt-group">
+        <label class="opt-chip">
+          <input type="checkbox" id="chkCargo">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Cargo / Função
+        </label>
+        <label class="opt-chip">
+          <input type="checkbox" id="chkEscola">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Escola
+        </label>
+        <label class="opt-chip">
+          <input type="checkbox" id="chkCPF">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          CPF
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Linhas em branco extras</label>
+      <div class="opt-group">
+        <label class="opt-chip">
+          <input type="radio" name="extras" value="0" checked>
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          Nenhuma
+        </label>
+        <label class="opt-chip">
+          <input type="radio" name="extras" value="5">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          +5
+        </label>
+        <label class="opt-chip">
+          <input type="radio" name="extras" value="10">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          +10
+        </label>
+        <label class="opt-chip">
+          <input type="radio" name="extras" value="20">
+          <svg class="check-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          +20
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PARTICIPANTES (full width) ── -->
+  <div class="card col-full">
+    <div class="card-head">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div style="flex:1">
+        <div class="card-title-text">Participantes</div>
+        <div class="card-subtitle">Digite, cole ou importe a lista de nomes</div>
+      </div>
+      <span class="counter-pill" id="counterPill">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span id="counter">0 participantes</span>
+      </span>
+    </div>
+
+    <div class="tag-box" id="tagBox" onclick="document.getElementById('tagInput').focus()">
+      <input class="tag-input" id="tagInput" placeholder="Digite um nome e pressione Enter…" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="tag-hint">
+      <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:var(--text-hint);fill:none;stroke-width:2;stroke-linecap:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Enter para adicionar · Backspace remove o último
+    </div>
+
+    <hr class="divider">
+
+    <div class="btn-row">
+      <button class="btn btn-outline-accent" onclick="toggleImport()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Importar lista
+      </button>
+      <button class="btn btn-danger" onclick="clearAll()">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        Limpar tudo
+      </button>
+    </div>
+
+    <!-- painel de importação -->
+    <div class="import-panel" id="importPanel">
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tabText" onclick="switchTab('text')">
+          <svg viewBox="0 0 24 24"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="13" y1="18" x2="3" y2="18"/></svg>
+          Colar texto
+        </button>
+        <button class="tab-btn" id="tabFile" onclick="switchTab('file')">
+          <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+          Arquivo (.txt / .csv)
+        </button>
+      </div>
+
+      <div id="paneText" class="tab-pane">
+        <div class="field" style="margin-bottom:10px">
+          <label>Nomes — um por linha</label>
+          <textarea id="pasteBox" placeholder="João da Silva&#10;Maria Oliveira&#10;Pedro Santos&#10;..."></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="importFromText()">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Importar nomes
+          </button>
+          <button class="btn btn-ghost" onclick="toggleImport()">Cancelar</button>
+        </div>
+      </div>
+
+      <div id="paneFile" class="tab-pane" style="display:none">
+        <div id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <p style="font-size:13px;font-weight:600;color:var(--text-muted);margin:0 0 4px">Arraste o arquivo aqui ou clique para selecionar</p>
+          <p style="font-size:12px;color:var(--text-hint);margin:0">.txt ou .csv — um nome por linha (ou primeira coluna do CSV)</p>
+          <input type="file" id="fileInput" accept=".txt,.csv,text/plain,text/csv" style="display:none" onchange="handleFileSelect(this)">
+        </div>
+        <div id="filePreview">
+          <div class="file-info">
+            <svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            <span class="file-info-name" id="fileName"></span>
+            <span class="file-info-count" id="fileCount"></span>
+            <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="clearFile()">Trocar</button>
+          </div>
+          <div class="file-names-preview" id="fileNames"></div>
+          <div class="btn-row" style="margin-top:10px">
+            <button class="btn btn-primary" onclick="importFromFile()">
+              <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importar nomes
+            </button>
+            <button class="btn btn-ghost" onclick="toggleImport()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACTION BAR (full width) ── -->
+  <div class="action-bar col-full">
+    <span class="action-bar-label">Gerar documento</span>
+    <button class="btn btn-primary" id="btnPrincipal" onclick="acaoPrincipal()">
+      <svg class="btn-icon" id="btnIcon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      <span class="spinner"></span>
+      <span id="btnLabel">Imprimir lista</span>
+    </button>
+    <button class="btn" onclick="togglePreview()">
+      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Pré-visualizar
+    </button>
+  </div>
+
+  <!-- ── PREVIEW (full width) ── -->
+  <div id="previewWrap" class="col-full">
+    <div class="preview-card">
+      <div class="preview-toolbar">
+        <span class="preview-title">Pré-visualização</span>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="togglePreview()">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Fechar
+        </button>
+      </div>
+      <iframe id="previewFrame" title="Pré-visualização da lista"></iframe>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div id="toastEl" class="toast">
+  <svg class="toast-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<!-- ══════════════════════ MODAL SOBRE ══════════════════════ -->
+<div class="modal-overlay" id="modalSobre" onclick="fecharSobre(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-top">
+        <div>
+          <div class="modal-app-name">Gerador de Lista de Presença</div>
+          <div class="modal-version">v1.0</div>
+        </div>
+        <button class="modal-close" onclick="fecharSobre()" title="Fechar">×</button>
+      </div>
+      <div class="modal-org">Gerência de Educação Especial — GEE &nbsp;·&nbsp; SEDUCT &nbsp;·&nbsp; Campos dos Goytacazes / RJ</div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">
+        Ferramenta desenvolvida para a <strong>GEE / SEDUCT</strong> para geração de listas de presença
+        institucionais. Suporta importação de nomes via texto colado ou arquivo (.txt / .csv),
+        múltiplas colunas de assinatura, campos extras e geração de PDF diretamente no celular —
+        funciona offline após o primeiro acesso.
+      </p>
+      <div class="modal-credits">
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#1B4F9B;padding:0;overflow:hidden;">
+            <img src="data:image/jpeg;base64,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" alt="Alamir Rodrigues Rangel Júnior" style="width:100%;height:100%;object-fit:cover;display:block;">
+          </div>
+          <div>
+            <div class="credit-label">Idealizador</div>
+            <div class="credit-name">Alamir Rodrigues Rangel Júnior</div>
+            <div class="credit-role">Auxiliar de Secretaria — GEE / SEDUCT</div>
+          </div>
+        </div>
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#0F172A;">
+            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <div>
+            <div class="credit-label">Implementado por</div>
+            <div class="credit-name">Claude AI</div>
+            <div class="credit-role">Anthropic</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      Campos dos Goytacazes, RJ &nbsp;·&nbsp; SEDUCT / GEE
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── dispositivo ── */
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  document.getElementById('deviceBadge').textContent = isMobile ? 'modo mobile' : 'modo desktop';
+
+  if (isMobile) {
+    document.getElementById('btnLabel').textContent = 'Baixar PDF';
+    document.getElementById('btnIcon').innerHTML =
+      '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>';
+  }
+
+  /* ── chips: fallback para browsers sem :has ── */
+  document.querySelectorAll('.opt-chip input').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const name = inp.name;
+      if (name) {
+        document.querySelectorAll(`input[name="${name}"]`).forEach(i => {
+          i.closest('.opt-chip').classList.toggle('selected', i.checked);
+        });
+      } else {
+        inp.closest('.opt-chip').classList.toggle('selected', inp.checked);
+      }
+    });
+  });
+  /* estado inicial */
+  document.querySelectorAll('.opt-chip input:checked').forEach(i => {
+    i.closest('.opt-chip').classList.add('selected');
+  });
+
+  /* ── dados ── */
+  let names = [];
+  document.getElementById('data').value = new Date().toLocaleDateString('pt-BR');
+
+  const tagBox    = document.getElementById('tagBox');
+  const tagInput  = document.getElementById('tagInput');
+  const counterEl = document.getElementById('counter');
+
+  tagInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const v = tagInput.value.trim();
+      if (v) { addName(v); tagInput.value = ''; }
+    }
+    if (e.key === 'Backspace' && !tagInput.value && names.length) {
+      removeName(names.length - 1);
+    }
+  });
+
+  function addName(n) { names.push(n); renderTags(); }
+  function removeName(i) { names.splice(i, 1); renderTags(); }
+
+  function renderTags() {
+    tagBox.querySelectorAll('.tag').forEach(t => t.remove());
+    names.forEach((n, i) => {
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.innerHTML = `<span>${esc(n)}</span><button class="tag-remove" onclick="removeName(${i})" title="Remover">×</button>`;
+      tagBox.insertBefore(tag, tagInput);
+    });
+    const txt = names.length + (names.length === 1 ? ' participante' : ' participantes');
+    counterEl.textContent = txt;
+  }
+
+  function clearAll() {
+    if (!names.length) return;
+    names = []; renderTags(); toast('Lista limpa.');
+  }
+
+  /* ── importação ── */
+  let pendingFileNames = [];
+
+  function toggleImport() {
+    const p = document.getElementById('importPanel');
+    p.classList.toggle('open');
+    if (p.classList.contains('open')) { switchTab('text'); document.getElementById('pasteBox').focus(); }
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tabText').classList.toggle('active', tab === 'text');
+    document.getElementById('tabFile').classList.toggle('active', tab === 'file');
+    document.getElementById('paneText').style.display = tab === 'text' ? '' : 'none';
+    document.getElementById('paneFile').style.display = tab === 'file' ? '' : 'none';
+  }
+
+  function addNamesFromLines(lines) {
+    let added = 0;
+    lines.forEach(l => { if (l && !names.includes(l)) { names.push(l); added++; } });
+    renderTags();
+    const p = document.getElementById('importPanel');
+    if (p.classList.contains('open')) toggleImport();
+    toast(added + (added === 1 ? ' nome importado.' : ' nomes importados.'));
+  }
+
+  function importFromText() {
+    const lines = document.getElementById('pasteBox').value
+      .split('\n').map(l => l.trim()).filter(Boolean);
+    document.getElementById('pasteBox').value = '';
+    addNamesFromLines(lines);
+  }
+
+  function parseFileLines(text) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const hasDelim = lines.filter(l => /[,;\t]/.test(l)).length > lines.length / 2;
+    if (hasDelim) {
+      return lines.map(l => {
+        const sep = l.includes(';') ? ';' : l.includes('\t') ? '\t' : ',';
+        return l.split(sep)[0].replace(/^["']|["']$/g, '').trim();
+      }).filter(Boolean);
+    }
+    return lines;
+  }
+
+  function handleFileSelect(input) {
+    const file = input.files[0];
+    if (file) readFile(file);
+  }
+
+  function readFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const parsed = parseFileLines(e.target.result);
+      pendingFileNames = parsed;
+      showFilePreview(file.name, parsed);
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function showFilePreview(name, parsed) {
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('filePreview').style.display = 'block';
+    document.getElementById('fileName').textContent = name;
+    document.getElementById('fileCount').textContent = '(' + parsed.length + ' nomes encontrados)';
+    const preview = parsed.slice(0, 8).map(n => '<div>' + esc(n) + '</div>').join('');
+    document.getElementById('fileNames').innerHTML = preview +
+      (parsed.length > 8 ? `<div style="color:var(--text-hint);margin-top:2px">… e mais ${parsed.length - 8} nome(s)</div>` : '');
+  }
+
+  function clearFile() {
+    pendingFileNames = [];
+    document.getElementById('dropZone').style.display = '';
+    document.getElementById('filePreview').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+  }
+
+  function importFromFile() { addNamesFromLines(pendingFileNames); clearFile(); }
+
+  /* drag & drop */
+  const zone = document.getElementById('dropZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) readFile(file);
+  });
+
+  /* ── helpers ── */
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function getCols()   { return parseInt(document.querySelector('input[name="cols"]:checked').value); }
+  function getExtras() { return parseInt(document.querySelector('input[name="extras"]:checked').value); }
+
+  function getDados() {
+    return {
+      titulo:     document.getElementById('titulo').value    || 'Lista de Presença',
+      subtitulo:  document.getElementById('subtitulo').value,
+      data:       document.getElementById('data').value,
+      horario:    document.getElementById('horario').value,
+      local:      document.getElementById('local').value,
+      rodape:     document.getElementById('rodape').value,
+      cols:       getCols(),
+      extras:     getExtras(),
+      showCargo:  document.getElementById('chkCargo').checked,
+      showEscola: document.getElementById('chkEscola').checked,
+      showCPF:    document.getElementById('chkCPF').checked,
+      allNames:   [...names, ...Array(getExtras()).fill('')]
+    };
+  }
+
+  /* ── HTML impressão ── */
+  function buildHTML(d) {
+    const metaItems = [d.data, d.horario, d.local].filter(Boolean);
+    const cell  = 'border:1px solid #bbb;padding:6px 8px;vertical-align:middle;';
+    const hcell = 'border:1px solid #bbb;padding:5px 8px;background:#e8e8e8;font-size:11px;font-weight:700;text-align:left;';
+
+    function buildTable(chunk, startIdx) {
+      let extraTH = '';
+      if (d.showCargo)  extraTH += `<th style="${hcell}min-width:90px;">Cargo / Função</th>`;
+      if (d.showEscola) extraTH += `<th style="${hcell}min-width:100px;">Escola</th>`;
+      if (d.showCPF)    extraTH += `<th style="${hcell}min-width:100px;">CPF</th>`;
+      const rows = chunk.map((n, i) => {
+        let ex = '';
+        if (d.showCargo)  ex += `<td style="${cell}font-size:12px;"></td>`;
+        if (d.showEscola) ex += `<td style="${cell}font-size:12px;"></td>`;
+        if (d.showCPF)    ex += `<td style="${cell}font-size:12px;"></td>`;
+        const bg = i % 2 ? 'background:#f9f9f9;' : '';
+        return `<tr style="${bg}">
+          <td style="${cell}font-size:11px;color:#888;text-align:center;width:22px;">${startIdx+i+1}</td>
+          <td style="${cell}font-size:13px;">${n ? esc(n) : ''}</td>${ex}
+          <td style="${cell}min-width:120px;"></td>
+        </tr>`;
+      }).join('');
+      return `<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
+        <thead><tr><th style="${hcell}width:22px;">#</th><th style="${hcell}">Nome completo</th>${extraTH}<th style="${hcell}min-width:120px;">Assinatura</th></tr></thead>
+        <tbody>${rows}</tbody></table>`;
+    }
+
+    const all = d.allNames.length ? d.allNames : Array(20).fill('');
+    let tableSection = '';
+    if (d.cols === 1) {
+      tableSection = buildTable(all, 0);
+    } else {
+      const sz = Math.ceil(all.length / d.cols);
+      const chunks = Array.from({length: d.cols}, (_, c) => all.slice(c*sz,(c+1)*sz));
+      const colW = d.cols === 2 ? '49%' : '32%';
+      const tbls = chunks.map((ch,ci) =>
+        `<div style="width:${colW};display:inline-block;vertical-align:top;">${buildTable(ch,ci*sz)}</div>`
+      ).join('<div style="display:inline-block;width:2%"></div>');
+      tableSection = `<div style="line-height:0;">${tbls}</div>`;
+    }
+
+    return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+      <title>${esc(d.titulo)} — Lista de Presença</title>
+      <style>body{margin:0;padding:28px 32px;font-family:Arial,sans-serif;color:#111;background:#fff;}
+      @media print{body{padding:14px 20px;}@page{margin:1cm;}}</style>
+    </head><body>
+      <div style="text-align:center;border-bottom:2.5px solid #1B4F9B;padding-bottom:14px;margin-bottom:18px;">
+        <div style="font-size:10px;letter-spacing:.07em;color:#555;text-transform:uppercase;margin-bottom:6px;">
+          Prefeitura Municipal de Campos dos Goytacazes &nbsp;·&nbsp;
+          Secretaria de Educação, Ciência e Tecnologia — SEDUCT &nbsp;·&nbsp;
+          Gerência de Educação Especial — GEE
+        </div>
+        <div style="font-size:20px;font-weight:700;color:#1B4F9B;margin-bottom:${d.subtitulo?'4px':'0'};">${esc(d.titulo)}</div>
+        ${d.subtitulo?`<div style="font-size:13px;color:#555;">${esc(d.subtitulo)}</div>`:''}
+        ${metaItems.length?`<div style="font-size:12px;color:#555;margin-top:6px;">${metaItems.map(esc).join('&nbsp;·&nbsp;')}</div>`:''}
+      </div>
+      ${tableSection}
+      ${d.rodape?`<div style="margin-top:28px;font-size:12px;color:#555;border-top:1px solid #ccc;padding-top:10px;">${esc(d.rodape)}</div>`:''}
+    </body></html>`;
+  }
+
+  /* ── PDF mobile ── */
+  function gerarPDF(d) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const margL=14, margR=14, margT=14;
+    const pgW = doc.internal.pageSize.getWidth();
+    const usableW = pgW - margL - margR;
+    let curY = margT;
+
+    doc.setFontSize(7); doc.setTextColor(100);
+    doc.text('Prefeitura Municipal de Campos dos Goytacazes  ·  Secretaria de Educação, Ciência e Tecnologia — SEDUCT  ·  Gerência de Educação Especial — GEE', pgW/2, curY, {align:'center'});
+    curY += 6;
+
+    doc.setFontSize(14); doc.setTextColor(27,79,155); doc.setFont(undefined,'bold');
+    doc.text(d.titulo, pgW/2, curY, {align:'center'});
+    curY += 5;
+
+    if (d.subtitulo) {
+      doc.setFontSize(9); doc.setFont(undefined,'normal'); doc.setTextColor(80);
+      doc.text(d.subtitulo, pgW/2, curY, {align:'center'});
+      curY += 5;
+    }
+
+    const meta = [d.data,d.horario,d.local].filter(Boolean).join('   ·   ');
+    if (meta) {
+      doc.setFontSize(8.5); doc.setFont(undefined,'normal'); doc.setTextColor(80);
+      doc.text(meta, pgW/2, curY, {align:'center'});
+      curY += 4;
+    }
+
+    doc.setDrawColor(27,79,155); doc.setLineWidth(0.6);
+    doc.line(margL, curY, pgW-margR, curY); curY += 4;
+
+    const head = ['#','Nome completo'];
+    if (d.showCargo)  head.push('Cargo / Função');
+    if (d.showEscola) head.push('Escola');
+    if (d.showCPF)    head.push('CPF');
+    head.push('Assinatura');
+
+    const allNames = d.allNames.length ? d.allNames : Array(20).fill('');
+    const extraCols = (d.showCargo?1:0)+(d.showEscola?1:0)+(d.showCPF?1:0);
+    const fixedNumW=8, fixedSignW=d.cols===1?38:28, extraColW=28;
+    const nameW = usableW - fixedNumW - fixedSignW - extraCols*extraColW;
+
+    function makeBody(chunk, startIdx) {
+      return chunk.map((n,i) => {
+        const row = [String(startIdx+i+1), n||''];
+        if (d.showCargo)  row.push('');
+        if (d.showEscola) row.push('');
+        if (d.showCPF)    row.push('');
+        row.push(''); return row;
+      });
+    }
+
+    function colStyles(nW, sW, eW) {
+      const cs = {};
+      const ws = [fixedNumW, nW];
+      if (d.showCargo)  ws.push(eW);
+      if (d.showEscola) ws.push(eW);
+      if (d.showCPF)    ws.push(eW);
+      ws.push(sW);
+      ws.forEach((w,i) => { cs[i]={cellWidth:w}; });
+      cs[0]={cellWidth:fixedNumW, halign:'center', fontSize:7.5, textColor:[150,150,150]};
+      return cs;
+    }
+
+    const headSt = {fillColor:[27,79,155], textColor:[255,255,255], fontSize:8, fontStyle:'bold'};
+
+    if (d.cols===1) {
+      doc.autoTable({
+        head:[head], body:makeBody(allNames,0),
+        startY:curY, margin:{left:margL,right:margR}, tableWidth:usableW,
+        columnStyles: colStyles(nameW, fixedSignW, extraColW),
+        headStyles:headSt,
+        bodyStyles:{fontSize:9, minCellHeight:8},
+        alternateRowStyles:{fillColor:[245,248,255]},
+        styles:{overflow:'linebreak',cellPadding:2},
+        didDrawPage: data => { curY=data.cursor.y; }
+      });
+    } else {
+      const sz=Math.ceil(allNames.length/d.cols);
+      const chunks=Array.from({length:d.cols},(_,c)=>allNames.slice(c*sz,(c+1)*sz));
+      const gap=4, tblW=(usableW-gap*(d.cols-1))/d.cols;
+      const signW2=24, extraW2=22, nameW2=tblW-fixedNumW-signW2-extraCols*extraW2;
+      let maxY=curY;
+      chunks.forEach((ch,ci) => {
+        const xStart=margL+ci*(tblW+gap);
+        doc.autoTable({
+          head:[head], body:makeBody(ch,ci*sz),
+          startY:curY, margin:{left:xStart, right:pgW-xStart-tblW}, tableWidth:tblW,
+          columnStyles:colStyles(nameW2,signW2,extraW2),
+          headStyles:{...headSt, fontSize:7.5},
+          bodyStyles:{fontSize:8.5,minCellHeight:7.5},
+          alternateRowStyles:{fillColor:[245,248,255]},
+          styles:{overflow:'linebreak',cellPadding:1.8},
+          didDrawPage: data => { if(data.cursor.y>maxY) maxY=data.cursor.y; }
+        });
+      });
+      curY=maxY;
+    }
+
+    if (d.rodape) {
+      curY+=8;
+      doc.setFontSize(8); doc.setTextColor(100); doc.setFont(undefined,'normal');
+      doc.setDrawColor(180); doc.setLineWidth(0.3);
+      doc.line(margL,curY,pgW-margR,curY); curY+=4;
+      doc.text(d.rodape,margL,curY);
+    }
+
+    const nomeArq=(d.titulo||'lista-presenca').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    doc.save(`${nomeArq}.pdf`);
+  }
+
+  /* ── ação principal ── */
+  function acaoPrincipal() {
+    const d = getDados();
+    if (isMobile) {
+      if (!window.jspdf) { toast('Biblioteca PDF ainda carregando…'); return; }
+      const btn = document.getElementById('btnPrincipal');
+      btn.disabled=true; btn.classList.add('loading');
+      document.getElementById('btnLabel').textContent='Gerando PDF…';
+      setTimeout(() => {
+        try { gerarPDF(d); toast('PDF gerado com sucesso!'); }
+        catch(e) { toast('Erro ao gerar o PDF.'); console.error(e); }
+        btn.disabled=false; btn.classList.remove('loading');
+        document.getElementById('btnLabel').textContent='Baixar PDF';
+      }, 80);
+    } else {
+      const html=buildHTML(d);
+      const w=window.open('','_blank');
+      if (!w) { toast('Permita pop-ups para imprimir.'); return; }
+      w.document.write(html.replace('</body>','<script>window.onload=()=>{window.print();}<\/script></body>'));
+      w.document.close();
+    }
+  }
+
+  /* ── preview ── */
+  let previewOpen=false;
+  function togglePreview() {
+    const wrap=document.getElementById('previewWrap');
+    previewOpen=!previewOpen;
+    wrap.classList.toggle('open',previewOpen);
+    if (previewOpen) {
+      document.getElementById('previewFrame').srcdoc=buildHTML(getDados());
+      wrap.scrollIntoView({behavior:'smooth'});
+    }
+  }
+
+  /* ── toast ── */
+  function toast(msg) {
+    document.getElementById('toastMsg').textContent=msg;
+    const t=document.getElementById('toastEl');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),3000);
+  }
+
+  function abrirSobre() {
+    document.getElementById('modalSobre').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function fecharSobre(e) {
+    if (e && e.target !== document.getElementById('modalSobre')) return;
+    document.getElementById('modalSobre').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') fecharSobre();
+  });
+</script>
+</body>
+</html>

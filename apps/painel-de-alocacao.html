@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Alocação de Mediadores e Cuidadores — GEE / SEDUCT (Standalone)</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#EEF2F7;--surface:#fff;--surface2:#F4F6FA;--surface3:#E8EDF5;
+  --border:#D0D8E8;--border-md:#B0BDD4;--text:#111827;--text-muted:#5A6785;
+  --text-hint:#94A3B8;--accent:#1B4F9B;--accent2:#2563EB;--accent-hover:#163F7A;
+  --accent-light:#DBEAFE;--accent-mid:#93C5FD;--danger:#991B1B;--danger-light:#FEE2E2;
+  --warn:#92400E;--warn-light:#FEF3C7;--success:#166534;--success-light:#DCFCE7;
+  --radius:12px;--radius-sm:8px;--radius-xs:5px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);--shadow:0 4px 12px rgba(0,0,0,.08);
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+header{background:linear-gradient(135deg,#1B4F9B 0%,#1e40af 100%);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(27,79,155,.25);}
+.header-inner{max-width:1100px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.header-logo{width:40px;height:40px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-logo svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.header-titles{flex:1;min-width:0;}
+.header-titles h1{font-size:15px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.header-titles p{font-size:11px;color:rgba(255,255,255,.65);}
+.btn-sobre{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border:1.5px solid rgba(255,255,255,.35);border-radius:20px;background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.btn-sobre svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+@media(max-width:480px){.header-titles p{display:none;}.btn-sobre span{display:none;}.btn-sobre{padding:6px 9px;}}
+.main{max-width:1100px;margin:0 auto;padding:20px 14px 60px;display:flex;flex-direction:column;gap:14px;}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;box-shadow:var(--shadow-sm);}
+.stat-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px;}
+.stat-value{font-size:24px;font-weight:800;color:var(--accent);line-height:1;}
+.stat.danger .stat-value{color:var(--danger);}
+.stat.warn .stat-value{color:var(--warn);}
+.stat.success .stat-value{color:var(--success);}
+.stat-value{position:relative;}
+.meta-edit{padding:2px;margin-left:2px;vertical-align:middle;}
+.meta-edit svg{width:12px;height:12px;}
+.meta-edit:hover{background:var(--accent-light);color:var(--accent);}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.card-icon{width:32px;height:32px;background:var(--accent-light);border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.card-icon svg{width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.card-title-text{font-size:13px;font-weight:700;color:var(--text);}
+.card-subtitle{font-size:11px;color:var(--text-muted);}
+
+.autocomplete-wrap{position:relative;}
+.autocomplete-wrap input.cell-input{padding-right:22px;}
+.autocomplete-arrow{position:absolute;right:5px;top:50%;margin-top:-6.5px;width:13px;height:13px;stroke:var(--text-hint);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;transition:transform .15s ease, stroke .15s ease;}
+.autocomplete-arrow.open{stroke:var(--accent);transform:rotate(180deg);}
+.autocomplete-list{display:none;position:fixed;z-index:999;background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-sm);box-shadow:var(--shadow);max-height:190px;overflow-y:auto;}
+.autocomplete-list.show{display:block;}
+.autocomplete-item{padding:7px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.autocomplete-item:hover{background:var(--accent-light);color:var(--accent);}
+
+.gerenciar-escolas{margin-bottom:12px;border:1px dashed var(--border-md);border-radius:var(--radius-sm);padding:10px 12px;background:var(--surface2);}
+.gerenciar-escolas summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--accent);}
+.gerenciar-escolas .hint{font-size:11.5px;color:var(--text-hint);margin:6px 0 8px;}
+.gerenciar-escolas textarea{width:100%;min-height:70px;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12.5px;font-family:inherit;resize:vertical;}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.toolbar .field-search{flex:1;min-width:160px;}
+.field-search input{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;font-family:inherit;outline:none;}
+.field-search input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+select.sel-filtro{padding:9px 10px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);outline:none;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--border-md);background:var(--surface);color:var(--text);font-family:inherit;line-height:1;white-space:nowrap;}
+.btn:hover{background:var(--surface2);}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(27,79,155,.25);}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--text-muted);}
+.btn-ghost:hover{background:var(--surface3);color:var(--text);}
+.btn-sm{padding:6px 11px;font-size:12px;}
+.btn-danger{border-color:#FECACA;color:var(--danger);background:var(--surface);}
+.btn-danger:hover{background:var(--danger-light);}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);padding:0 8px 8px;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+tbody td{padding:7px 8px;border-bottom:1px solid var(--surface3);vertical-align:middle;}
+tbody tr:hover{background:var(--surface2);}
+.col-num{text-align:center;width:54px;}
+.col-acoes{width:64px;text-align:center;}
+input.cell-input{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12.5px;font-family:inherit;color:var(--text);background:var(--surface);}
+input.cell-input:focus{outline:none;border-color:var(--accent2);}
+select.cell-select{width:100%;border:1.5px solid var(--border);border-radius:6px;padding:5px 4px;font-size:12px;font-family:inherit;background:var(--surface);}
+input.cell-num{width:56px;text-align:center;}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:14px;font-size:11px;font-weight:700;white-space:nowrap;}
+.badge-ok{background:var(--success-light);color:var(--success);}
+.badge-falta{background:var(--danger-light);color:var(--danger);}
+.badge-excesso{background:var(--warn-light);color:var(--warn);}
+.badge-zero{background:var(--surface3);color:var(--text-hint);}
+
+.btn-icon-sm{background:none;border:none;cursor:pointer;color:var(--text-hint);padding:4px;border-radius:6px;display:inline-flex;}
+.btn-icon-sm:hover{background:var(--danger-light);color:var(--danger);}
+.btn-icon-sm svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+.empty-state{text-align:center;padding:32px 12px;color:var(--text-hint);font-size:13px;}
+
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#0F172A;color:#fff;padding:11px 22px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:all .3s ease;z-index:9999;max-width:90vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;box-shadow:0 24px 64px rgba(0,0,0,.2);width:100%;max-width:460px;overflow:hidden;}
+.modal.modal-lg{max-width:600px;}
+.modal-header{background:linear-gradient(135deg,#1B4F9B 0%,#1e40af 100%);padding:20px 22px 16px;}
+.modal-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.modal-app-name{font-size:15px;font-weight:700;color:#fff;}
+.modal-version{font-size:11px;color:rgba(255,255,255,.55);background:rgba(255,255,255,.12);border-radius:10px;padding:2px 9px;}
+.modal-close{background:rgba(255,255,255,.15);border:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:16px;}
+.modal-org{font-size:11px;color:rgba(255,255,255,.65);}
+.modal-body{padding:20px 22px;}
+.modal-desc{font-size:13.5px;color:#334155;line-height:1.7;margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid #E2E8F0;}
+.modal-credits{display:flex;flex-direction:column;gap:12px;}
+.credit-row{display:flex;align-items:center;gap:12px;}
+.credit-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.credit-avatar svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.credit-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:1px;}
+.credit-name{font-size:13.5px;font-weight:700;color:#0F172A;}
+.credit-role{font-size:12px;color:#64748B;}
+.modal-footer{padding:12px 22px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:11.5px;color:#94A3B8;text-align:center;}
+
+.legenda{display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:11.5px;color:var(--text-muted);}
+.legenda span{display:inline-flex;align-items:center;gap:5px;}
+
+@media print{
+  @page{size:A4 landscape;margin:12mm;}
+  header,.toolbar,.col-acoes,.btn-sobre,#cardDados,#cardRealocacao,.legenda,.toast{display:none !important;}
+  body{background:#fff;font-size:11px;}
+  .main{padding:0;max-width:100%;}
+  .card{box-shadow:none;border:1px solid #ccc;padding:10px 12px;}
+  .stats-grid{grid-template-columns:repeat(6,1fr);}
+  .stat{box-shadow:none;break-inside:avoid;}
+  .tabela-scroll{overflow:visible !important;height:auto !important;max-height:none !important;}
+  table{font-size:10.5px;}
+  thead{display:table-header-group;}
+  tbody tr{break-inside:avoid;page-break-inside:avoid;}
+  input.cell-input,select.cell-select{border:none;background:transparent;padding:2px 4px;color:#000;}
+  .cell-num{text-align:center;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <div class="header-titles">
+      <h1>Painel de Alocação <span style="font-size:10px;font-weight:400;opacity:.6">· build 08-07-2026_12:41</span></h1>
+      <p>Gerência de Educação Especial — GEE / SEDUCT</p>
+    </div>
+    <button class="btn-sobre" onclick="abrirSobre()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>Sobre</span>
+    </button>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div style="flex:1">
+        <div class="card-title-text">Escolas cadastradas</div>
+        <div class="card-subtitle">Meta e alocação atual de mediadores e cuidadores</div>
+      </div>
+    </div>
+
+    <div class="toolbar" style="margin-bottom:12px">
+      <div class="field-search">
+        <input type="text" id="busca" placeholder="Buscar escola...">
+      </div>
+      <select class="sel-filtro" id="filtroRegiao">
+        <option value="">Todas as regiões</option>
+      </select>
+      <select class="sel-filtro" id="filtroStatus">
+        <option value="">Todos os status</option>
+        <option value="falta-med">Faltam mediadores</option>
+        <option value="falta-cui">Faltam cuidadores</option>
+        <option value="excesso">Tem excesso</option>
+        <option value="ok">Sem pendências</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="adicionarEscola()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova escola
+      </button>
+    </div>
+
+    <details class="gerenciar-escolas">
+      <summary>Gerenciar lista de escolas (sugestões do campo "Escola")</summary>
+      <p class="hint">Cole os nomes das escolas, um por linha, para que apareçam como sugestão ao digitar. Também é preenchida automaticamente conforme você cadastra escolas novas.</p>
+      <textarea id="colarEscolas" placeholder="Escola Municipal Fulano de Tal&#10;Escola Municipal Beltrano da Silva&#10;..."></textarea>
+      <div style="margin-top:8px">
+        <button class="btn btn-primary btn-sm" onclick="importarEscolasConhecidas()">Adicionar à lista</button>
+        <button class="btn btn-ghost btn-sm" onclick="restaurarListaPadrao()">Restaurar lista oficial da prefeitura (235 escolas)</button>
+        <button class="btn btn-ghost btn-sm" onclick="limparEscolasConhecidas()">Limpar lista de sugestões</button>
+      </div>
+    </details>
+
+    <div class="tabela-scroll" style="overflow-x:auto">
+      <table id="tabelaEscolas">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th style="min-width:170px">Escola</th>
+            <th style="width:74px">Região</th>
+            <th style="width:70px">Meta Med.</th>
+            <th style="width:70px">Atual Med.</th>
+            <th style="width:96px">Status Med.</th>
+            <th style="width:70px">Meta Cui.</th>
+            <th style="width:70px">Atual Cui.</th>
+            <th style="width:96px">Status Cui.</th>
+            <th style="width:98px">Alunos NEE</th>
+            <th class="col-acoes"></th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela"></tbody>
+      </table>
+      <div class="empty-state" id="estadoVazio" style="display:none">Nenhuma escola cadastrada ainda. Clique em "Nova escola" para começar.</div>
+    </div>
+
+    <div class="legenda">
+      <span><span class="badge badge-ok">OK</span> Atual = Meta</span>
+      <span><span class="badge badge-falta">Falta</span> Atual &lt; Meta (vaga em aberto)</span>
+      <span><span class="badge badge-excesso">Excesso</span> Atual &gt; Meta (desbalanceamento)</span>
+      <span><span class="badge badge-zero">—</span> Meta não definida</span>
+    </div>
+  </div>
+
+  <div class="card" id="cardRealocacao">
+    <div class="card-head">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+      <div style="flex:1">
+        <div class="card-title-text">Sugestão de realocação</div>
+        <div class="card-subtitle">Redistribui mediadores/cuidadores de escolas com excesso para escolas com falta, sempre dentro da mesma região</div>
+      </div>
+    </div>
+    <div class="toolbar" style="margin-bottom:12px">
+      <button class="btn btn-primary" onclick="calcularRealocacao()">
+        <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        Calcular sugestões
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="aplicarTodasMovimentos()">Aplicar todas</button>
+    </div>
+    <div id="resumoRealocacao" style="font-size:12.5px;color:var(--text-muted);margin-bottom:8px"></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:74px">Região</th>
+            <th style="width:90px">Tipo</th>
+            <th>De (excesso)</th>
+            <th style="width:24px"></th>
+            <th>Para (falta)</th>
+            <th style="width:60px">Qtd.</th>
+            <th class="col-acoes"></th>
+          </tr>
+        </thead>
+        <tbody id="corpoRealocacao"></tbody>
+      </table>
+      <div class="empty-state" id="estadoVazioRealocacao">Clique em "Calcular sugestões" para ver as movimentações recomendadas com base nos dados atuais.</div>
+    </div>
+  </div>
+
+  <div class="card" id="cardDados">
+    <div class="card-head">
+      <div class="card-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div style="flex:1">
+        <div class="card-title-text">Dados e relatório</div>
+        <div class="card-subtitle">Salvar, restaurar ou imprimir o panorama atual</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn" onclick="exportarJSON()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Exportar backup (.json)
+      </button>
+      <label class="btn" style="cursor:pointer">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar backup
+        <input type="file" id="inputImportar" accept="application/json" style="display:none">
+      </label>
+      <button class="btn" onclick="window.print()">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir relatório
+      </button>
+      <button class="btn btn-danger btn-sm" onclick="limparTudo()">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        Limpar tudo
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="modalSobre" onclick="fecharSobre(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-top">
+        <div><div class="modal-app-name">Painel de Alocação</div><div class="modal-version">v1.0</div></div>
+        <button class="modal-close" onclick="fecharSobre()">x</button>
+      </div>
+      <div class="modal-org">GEE &nbsp;·&nbsp; SEDUCT &nbsp;·&nbsp; Campos dos Goytacazes / RJ</div>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">Cruza a meta de mediadores e cuidadores definida para cada escola com a quantidade atualmente alocada, sinalizando vagas em aberto e excessos por unidade e por região. Os dados ficam salvos neste dispositivo (com opção de exportar/importar backup) e funciona 100% offline.</p>
+      <div class="modal-credits">
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#1B4F9B;">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          </div>
+          <div>
+            <div class="credit-label">Idealizador</div>
+            <div class="credit-name">Alamir Rodrigues Rangel Júnior</div>
+            <div class="credit-role">Auxiliar de Secretaria - GEE / SEDUCT</div>
+          </div>
+        </div>
+        <div class="credit-row">
+          <div class="credit-avatar" style="background:#0F172A;">
+            <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          </div>
+          <div>
+            <div class="credit-label">Implementado por</div>
+            <div class="credit-name">Claude AI</div>
+            <div class="credit-role">Anthropic</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">Campos dos Goytacazes, RJ &nbsp;·&nbsp; SEDUCT / GEE</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalDeficiencias" onclick="fecharDeficiencias(event)">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-header-top">
+        <div><div class="modal-app-name">Alunos por deficiência</div><div class="modal-version" id="defEscolaNome" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div></div>
+        <button class="modal-close" onclick="fecharDeficiencias()">x</button>
+      </div>
+      <div class="modal-org">Quantidade de alunos NEE por tipo de deficiência nesta escola</div>
+    </div>
+    <div class="modal-body">
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo de deficiência</th>
+              <th style="width:80px">Alunos</th>
+              <th class="col-acoes"></th>
+            </tr>
+          </thead>
+          <tbody id="corpoDeficiencias"></tbody>
+        </table>
+      </div>
+      <div class="toolbar" style="margin-top:12px;justify-content:space-between">
+        <button class="btn btn-primary btn-sm" onclick="adicionarTipoDeficiencia()">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar tipo
+        </button>
+        <div style="font-size:12.5px;color:var(--text-muted)">Total: <strong id="defTotalAlunos" style="color:var(--text)">0</strong> aluno(s)</div>
+      </div>
+    </div>
+    <div class="modal-footer">Os tipos digitados aqui entram como sugestão nas próximas escolas.</div>
+  </div>
+</div>
+
+<div id="toastEl" class="toast"></div>
+
+<script>
+var STORAGE_KEY = 'gee_painel_alocacao_v1';
+var STORAGE_KEY_ESCOLAS = 'gee_painel_alocacao_escolas_conhecidas_v1';
+var STORAGE_KEY_TIPOS_DEF = 'gee_painel_alocacao_tipos_deficiencia_v1';
+// Remove acentos e caixa para comparar nomes de escola sem duplicar
+// quando a mesma escola está grafada com/sem acento (ex.: "Venancio" x "Venâncio").
+function normalizarNome(s) {
+  return String(s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+var REGIOES = [1,2,3,4,5,6,7,8,9];
+var escolas = [];
+var seq = 1;
+// Total de vagas contratadas/orçadas (era fixo em 425/258 no código; agora
+// é editável na tela e fica salvo no navegador junto com o resto dos dados).
+var metaTotalMed = 425;
+var metaTotalCui = 258;
+var sugestoesRealocacao = [];
+var tiposDeficienciaConhecidos = [];
+var escolaDeficienciasAbertaId = null;
+
+// Lista de partida para o autocomplete de "tipo de deficiência" no cadastro
+// por escola. É só sugestão inicial: qualquer tipo digitado pela primeira vez
+// entra automaticamente na lista de sugestões (mesma lógica das escolas).
+var TIPOS_DEFICIENCIA_PADRAO = [
+  'Altas Habilidades/Superdotação',
+  'Baixa Visão',
+  'Deficiência Física',
+  'Deficiência Intelectual',
+  'Deficiência Múltipla',
+  'Deficiente Auditivo',
+  'Deficiente Visual',
+  'Surdez',
+  'Surdocegueira',
+  'Síndrome de Down',
+  'TDAH',
+  'Transtorno do Espectro Autista (TEA)'
+];
+
+// Lista de escolas conhecidas (aparece na lista suspensa do campo "Escola").
+// Pode ser editada à vontade aqui embaixo, e também é atualizada automaticamente
+// sempre que uma escola nova é digitada e salva no painel.
+var ESCOLAS_PADRAO = [
+  'CE 29 de Maio',
+  'CEM Aldeia',
+  'CEM Ana Beatriz Rangel da Silva',
+  'CEM Antonino Venâncio',
+  'CEM Antônio Nunes Vieira',
+  'CEM Anísio Spínola Teixeira',
+  'CEM Ataliba Carvalho de Brito',
+  'CEM Beira do Taí',
+  'CEM Benedito Alves Barreto',
+  'CEM Bruno da Silva Macabu',
+  'CEM Conceição do Imbé',
+  'CEM Desembargador Sebastião Amaro da Silva Machado',
+  'CEM Dom Antônio de Castro Mayer',
+  'CEM Dom Hélder Câmara',
+  'CEM Donana',
+  'CEM Dr. Félix Miranda - inclusão 26',
+  'CEM Emídio Teixeira de Oliveira',
+  'CEM Enéas Tavares Trindade',
+  'CEM Erivelton Junior',
+  'CEM Farol de São Thomé',
+  'CEM Felismindo Marques Barreto',
+  'CEM Francisco Alves Dias',
+  'CEM Francisco Cordeiro Pereira',
+  'CEM Francisco de Assis',
+  'CEM Gandur Assed',
+  'CEM Getúlio Vargas',
+  'CEM Gilberto do Espírito Santo Amaral',
+  'CEM Glicério Carlos Neto',
+  'CEM Grevi Siqueira',
+  'CEM Henrique Jardim da Cruz',
+  'CEM Irmã Dulce 2026',
+  'CEM Irmã Zilda',
+  'CEM Irmã Zilda de Castro',
+  'CEM Jardim Ceasa',
+  'CEM Jocineia da Silva Borges',
+  'CEM José Cândido de Carvalho',
+  'CEM José de Souza Sodre',
+  'CEM José Eduardo Peixoto Zandonaide',
+  'CEM José Silveira Lubanco',
+  'CEM João Batista Veiga',
+  'CEM João Goulart',
+  'CEM João Perdecene Neto',
+  'CEM João Siqueira dos Santos',
+  'CEM Luiz Gonzaga da Silva',
+  'CEM Madre Tereza de Calcutá',
+  'CEM Maria da Conceição Santos Tavares',
+  'CEM Maria de Lourdes',
+  'CEM Martin Luther King',
+  'CEM Mirian dos Santos Melo',
+  'CEM Monteiro Lobato',
+  'CEM Mãe Flor',
+  'CEM Nadir Pereira Gomes',
+  'CEM Norberto Siqueira Barreto',
+  'CEM Olímpio Paulo da Silva',
+  'CEM Parque Aurora',
+  'CEM Parque Guarus',
+  'CEM Parque Imperial 2026',
+  'CEM Parque Prazeres',
+  'CEM Parque Santos Dumont',
+  'CEM Penha',
+  'CEM Prof. Paulo Freire',
+  'CEM Prof.ª Diva Marina Suppa Goulart',
+  'CEM Prof.ª Joelma Figueiredo de Souza',
+  'CEM Prof.ª Olga Linhares Corrêa',
+  'CEM Prof.ª Rita de Cássia Rocha Soares Chardelli - 2026',
+  'CEM Prof.ª Ruth Chagas Manhães',
+  'CEM Prof.ª Ângela Maria do Amaral',
+  'CEM Salvador Rangel Lopes',
+  'CEM Sebastião Tavares Campista',
+  'CEM Silvina Manhães Terra',
+  'CEM Subtenente Cláudio Henrique Laurindo de Cravalho',
+  'CEM São Matheus',
+  'CEM Sérgio Luiz Lilico Paes da Silva',
+  'CEM Vera Pretyman',
+  'CEM Vereadora Hermeny Coutinho',
+  'CEM Wilson Amaro de Freitas',
+  'CEM Zumbi dos Palmares',
+  'CEM Álvaro Ribeiro das Neves',
+  'CEMSTIAC',
+  'CIEP Brizolão 142 Maestro Villa Lobos Quadro informativo 2026AEE',
+  'CIEP Brizolão 144 Prof.ª Carmem Sylvia Carneiro',
+  'CIEP Brizolão 269 Francisco Portela',
+  'CIEP Brizolão 416 Wilson Batista.',
+  'CIEP Brizolão 481 Arnaldo Rosa Viana',
+  'EM Alayr Bernardes Pereira',
+  'EM Albertina Azeredo Venâncio',
+  'EM Alberto Lamego (Martins Lage)',
+  'EM Alberto Lamego (Poço Gordo)',
+  'EM Alcebíades Candiano',
+  'EM Alfredo Vieira Machado',
+  'EM Alicério Ribeiro da Silva',
+  'EM Amaro Antônio da Silva',
+  'EM Amaro Prata Tavares',
+  'EM Ambrósio de Souza',
+  'EM Anleifer Leite Fernandes - Educação Especial',
+  'EM Antônia Lopes',
+  'EM Antônio Caetano Peixoto',
+  'EM Antônio de Souza Rodrigues',
+  'EM Antônio Joaquim Codeço',
+  'EM APIC - Quadro Informativo',
+  'EM Ary Batista Rangel',
+  'EM Augusto Machado Viana',
+  'EM Barreto',
+  'EM Bartholomeu Lysandro',
+  'EM Branca Peçanha Ferreira',
+  'EM Califórnia',
+  'EM Carlos Chagas',
+  'EM Carlos Jardim da Cruz',
+  'EM Cláudia Almeida Pinto de Oliveira',
+  'EM Clóvis Tavares',
+  'EM Conceição do Imbé',
+  'EM Conselheiro Josino',
+  'EM Coronel Antônio Batista',
+  'EM Custódio Generoso Vieira',
+  'EM Custódio Siqueira',
+  'EM Donana',
+  'EM Dr. Alcindor Moraes Bessa',
+  'EM Dr. Francisco Manoel Pereira Crespo',
+  'EM Dr. Getúlio Vargas',
+  'EM Dr. Luiz Guaraná',
+  'EM Dr. Luiz Sobral Quadro de Educação Especial 2026',
+  'EM Eloy Ornelas',
+  'EM Etelvira Martins Medeiros',
+  'EM Farol de São Tomé',
+  'EM Fazenda Aleluia',
+  'EM Fazenda Chalita',
+  'EM Felício Sarlo',
+  'EM Ferroviário Jacy da Silva Barbeto',
+  'EM Francisco de Assis - Sala de Recursos',
+  'EM Francisco Faria Barbosa',
+  'EM Francisco Ribeiro Siqueira',
+  'EM Francisco Ricardo Lysandro de Albernaz Santos (KM 15)',
+  'EM Francisco Ricardo Lysandro de Albernaz Santos (Mundéus)',
+  'EM Frederico Paes Barbosa',
+  'EM Genésio Viana',
+  'EM Gervásio Vasconcelos Cordeiro',
+  'EM Gonçalo Francisco Nunes',
+  'EM Guiomar Ramos Paes',
+  'EM Heitor Alves Barreto',
+  'EM Helena Machado de Oliveira',
+  'EM Ignácio Corrêa dos Santos',
+  'EM Iniciação Agrícola José Francisco Mota Vasconcelos',
+  'EM Instituto Profissional São José - 2026',
+  'EM Isabel Maria Polônio',
+  'EM Jacques Richer',
+  'EM Jardim de Infância Alva Doralice Ribeiro de Castro',
+  'EM Joanir Sanguedo Boynard - quadro informativo Educação Especial 2026',
+  'EM José Carneiro Terra',
+  'EM José das Chagas Pinto',
+  'EM José de Anchieta',
+  'EM José de Azevedo',
+  'EM José do Patrocínio',
+  'EM José Giró Faisca',
+  'EM José Manoel da Silva',
+  'EM João Batista de Azeredo',
+  'EM João Borges Barreto',
+  'EM João Carlos de Castro',
+  'EM João Goulart',
+  'EM Leandro de Souza Gomes',
+  'EM Leopoldino Maria',
+  'EM Leôncio Pereira Gomes',
+  'EM Lions Goitacá_Educação Especial',
+  'EM Lions I .quadro informativo atípicos 2026',
+  'EM Lions II',
+  'EM Luis Carlos de Lacerda',
+  'EM Luiz Monteiro Barbosa',
+  'EM Lulo Ferreira de Araújo .xlsx 2026',
+  'EM Lídia Leitão de Albernaz',
+  'EM Manoel Coelho',
+  'EM Manoel Corrêa Gonçalves',
+  'EM Manoel Pereira Gonçalves',
+  'EM Manoel Ribeiro do Nascimento',
+  'EM Manoel Simões de Rezende',
+  'EM Marechal Artur da Costa e Silva',
+  'EM Maria Antônia Pessanha Trindade',
+  'EM Maria Arlete Azevedo Araújo',
+  'EM Maria Cordeiro Borges',
+  'EM Maria Lúcia',
+  'EM Maria Queiroz de Oliveira',
+  'EM Mario Barroso',
+  'EM Marlene Henriques Alves .xlsx-30-03-26 2026',
+  'EM Miguel Henrique Gomes',
+  'EM Nação Goitacá',
+  'EM Nossa Senhora Aparecida',
+  'EM Nossa Senhora da Conceição',
+  'EM Olavo Alves Saldanha Filho',
+  'EM Olímpio Honório de Almeida',
+  'EM Olímpio Peixoto Sampaio',
+  'EM Pedro Barbosa',
+  'EM Pequeno Frederico',
+  'EM Pequeno Jornaleiro',
+  'EM Ponta da Palha',
+  'EM Posse do Meio',
+  'EM Presidente Castelo Branco',
+  'EM Prisco de Almeida',
+  'EM Prof. Carlos Bruno',
+  'EM Prof. Darcy Ribeiro',
+  'EM Prof. Fernando de Andrade',
+  'EM Prof. Paulo Freire',
+  'EM Prof. Walter Siqueira',
+  'EM Prof.ª Eleonora Silva Pinto Viana',
+  'EM Prof.ª Eunícia Ferreira da Silva',
+  'EM Prof.ª Maria Ângela Moreira Pinto',
+  'EM Prof.ª Olga Linhares Correa',
+  'EM Prof.ª Wilmar Cava Barros',
+  'EM Raymundo Soares Filho',
+  'EM Rotary I',
+  'EM Sagrada Família',
+  'EM Salvador Benzi',
+  'EM Santa Bárbara',
+  'EM Santa Maria',
+  'EM Santa Rita de Cássia',
+  'EM Santa Terezinha',
+  'EM Santo Amaro',
+  'EM Santo Antônio',
+  'EM Sebastião Ribeiro de Deus',
+  'EM Sebastião Viveiros de Vasconcelos',
+  'EM Senador José Carlos Pereira Pinto',
+  'EM Senador Tarcísio Miranda',
+  'EM Sesmaria',
+  'EM Sérgio Viana Barroso',
+  'EM Tarcílio Siqueira Cordeiro',
+  'EM Thierry Homero Ribeiro Gomes'
+];
+var escolasConhecidas = [];
+
+function carregar() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      var data = JSON.parse(raw);
+      escolas = data.escolas || [];
+      seq = data.seq || (escolas.length + 1);
+      if (data.metaTotalMed != null) metaTotalMed = data.metaTotalMed;
+      if (data.metaTotalCui != null) metaTotalCui = data.metaTotalCui;
+    }
+  } catch(e) { escolas = []; }
+
+  try {
+    var rawEsc = localStorage.getItem(STORAGE_KEY_ESCOLAS);
+    escolasConhecidas = rawEsc ? JSON.parse(rawEsc) : [];
+  } catch(e) { escolasConhecidas = []; }
+
+  // Garante que a lista oficial da prefeitura sempre esteja presente,
+  // mesmo que o navegador já tenha uma lista salva de uma versão anterior.
+  // A comparação ignora acentos para não duplicar a mesma escola (ex.:
+  // "Venancio" salvo antes x "Venâncio" da lista oficial atual) — e quando
+  // isso acontece, a grafia oficial (com acento) é a que prevalece.
+  var mapaEscolas = {};
+  escolasConhecidas.forEach(function(n) { mapaEscolas[normalizarNome(n)] = n; });
+  ESCOLAS_PADRAO.forEach(function(n) { mapaEscolas[normalizarNome(n)] = n; });
+  escolasConhecidas = Object.keys(mapaEscolas).map(function(k) { return mapaEscolas[k]; });
+  escolasConhecidas.sort(function(a,b){ return a.localeCompare(b, 'pt-BR'); });
+  try { localStorage.setItem(STORAGE_KEY_ESCOLAS, JSON.stringify(escolasConhecidas)); } catch(e) {}
+
+  try {
+    var rawTipos = localStorage.getItem(STORAGE_KEY_TIPOS_DEF);
+    tiposDeficienciaConhecidos = rawTipos ? JSON.parse(rawTipos) : [];
+  } catch(e) { tiposDeficienciaConhecidos = []; }
+  var mapaTipos = {};
+  tiposDeficienciaConhecidos.forEach(function(n) { mapaTipos[normalizarNome(n)] = n; });
+  TIPOS_DEFICIENCIA_PADRAO.forEach(function(n) { mapaTipos[normalizarNome(n)] = n; });
+  tiposDeficienciaConhecidos = Object.keys(mapaTipos).map(function(k) { return mapaTipos[k]; });
+  tiposDeficienciaConhecidos.sort(function(a,b){ return a.localeCompare(b, 'pt-BR'); });
+  try { localStorage.setItem(STORAGE_KEY_TIPOS_DEF, JSON.stringify(tiposDeficienciaConhecidos)); } catch(e) {}
+}
+
+function salvar() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({escolas: escolas, seq: seq, metaTotalMed: metaTotalMed, metaTotalCui: metaTotalCui}));
+  } catch(e) { toast('Não foi possível salvar localmente.'); }
+}
+
+function ligarAutocomplete(inputEl, listEl, obterLista, onEscolher) {
+  var wrap = inputEl.closest('.autocomplete-wrap');
+  var arrowEl = wrap ? wrap.querySelector('.autocomplete-arrow') : null;
+
+  function posicionar() {
+    var r = inputEl.getBoundingClientRect();
+    listEl.style.left = r.left + 'px';
+    listEl.style.top = (r.bottom + 3) + 'px';
+    listEl.style.width = Math.max(r.width, 180) + 'px';
+  }
+
+  function esconder() {
+    listEl.classList.remove('show');
+    if (arrowEl) arrowEl.classList.remove('open');
+  }
+
+  function filtrar() {
+    var termo = inputEl.value.trim().toLowerCase();
+    var lista = obterLista();
+    var candidatos = termo
+      ? lista.filter(function(n) { return n.toLowerCase().indexOf(termo) !== -1; })
+      : lista.slice();
+    // Antes limitava a 40 itens, mas como a lista tem ~80 CE/CEM antes da
+    // primeira EM (ordem alfabética), isso fazia as EM nunca aparecerem sem
+    // digitar nada pra filtrar. Como o total de escolas é pequeno (pouco
+    // mais de 200), não há problema em mostrar todas — a caixa já rola.
+    candidatos = candidatos.slice(0, 300);
+
+    if (!candidatos.length) {
+      listEl.innerHTML = '';
+      esconder();
+      return;
+    }
+    listEl.innerHTML = candidatos.map(function(n) {
+      return '<div class="autocomplete-item">' + escAttr(n) + '</div>';
+    }).join('');
+    posicionar();
+    listEl.classList.add('show');
+    if (arrowEl) arrowEl.classList.add('open');
+  }
+
+  inputEl.addEventListener('focus', filtrar);
+  inputEl.addEventListener('input', filtrar);
+  // 'click' além de 'focus': clicar num campo que já está focado não dispara
+  // 'focus' de novo no navegador, então sem isso a lista não reabriria depois
+  // de já ter escolhido uma escola e o campo continuar em foco.
+  inputEl.addEventListener('click', filtrar);
+  inputEl.addEventListener('blur', function() { setTimeout(esconder, 150); });
+
+  // Usamos 'capture' pra pegar rolagem de qualquer contêiner com scroll (ex.:
+  // a tabela tem scroll horizontal). Só que 'scroll' na CAPTURA também pega a
+  // rolagem de DENTRO da própria lista suspensa (ela tem 190px de altura e
+  // pode ter 40 escolas). Sem esse filtro, rolar a lista pra achar a escola
+  // fechava a lista na hora — o que parecia "a lista some e o campo desativa".
+  window.addEventListener('scroll', function(ev) {
+    if (listEl.contains(ev.target)) return;
+    esconder();
+  }, true);
+
+  // No celular, tocar num item da lista fecha o teclado virtual, e isso
+  // dispara 'resize' (só a ALTURA da janela muda, a largura continua igual).
+  // Se a gente escondesse a lista em qualquer resize, ela sumia no meio do
+  // toque, antes de o clique no item ser processado — por isso só escondemos
+  // quando a LARGURA muda de verdade (giro de tela, redimensionar janela etc).
+  var larguraAnterior = window.innerWidth;
+  window.addEventListener('resize', function() {
+    var larguraAtual = window.innerWidth;
+    if (larguraAtual === larguraAnterior) return;
+    larguraAnterior = larguraAtual;
+    esconder();
+  });
+
+  function selecionar(item) {
+    var valor = item.textContent;
+    inputEl.value = valor;
+    esconder();
+    onEscolher(valor);
+    // NÃO chama render() aqui: recriar a tabela inteira destruía o próprio
+    // <input>/lista que o usuário acabou de clicar (mesmo motivo do blur,
+    // ver comentário abaixo). O nome já foi salvo via onEscolher/atualizarCampo,
+    // e os badges de status não dependem do campo "nome" — nada a atualizar.
+  }
+
+  listEl.addEventListener('mousedown', function(ev) {
+    var item = ev.target.closest('.autocomplete-item');
+    if (!item) return;
+    ev.preventDefault();
+    selecionar(item);
+  });
+
+  // Reforço para touch: evita que o toque no item derrube o foco do campo
+  // antes de conseguirmos ler o valor escolhido (mesmo bug do parágrafo acima,
+  // só que via touchstart em vez de mousedown).
+  listEl.addEventListener('touchstart', function(ev) {
+    var item = ev.target.closest('.autocomplete-item');
+    if (!item) return;
+    ev.preventDefault();
+    selecionar(item);
+  }, { passive: false });
+}
+
+function registrarEscolaConhecida(nome) {
+  nome = String(nome || '').trim();
+  if (!nome || nome.length < 2) return;
+  var jaExiste = escolasConhecidas.some(function(n) { return normalizarNome(n) === normalizarNome(nome); });
+  if (jaExiste) return;
+  escolasConhecidas.push(nome);
+  escolasConhecidas.sort(function(a,b){ return a.localeCompare(b, 'pt-BR'); });
+  try { localStorage.setItem(STORAGE_KEY_ESCOLAS, JSON.stringify(escolasConhecidas)); } catch(e) {}
+}
+
+function registrarTipoDeficienciaConhecido(nome) {
+  nome = String(nome || '').trim();
+  if (!nome || nome.length < 2) return;
+  var jaExiste = tiposDeficienciaConhecidos.some(function(n) { return normalizarNome(n) === normalizarNome(nome); });
+  if (jaExiste) return;
+  tiposDeficienciaConhecidos.push(nome);
+  tiposDeficienciaConhecidos.sort(function(a,b){ return a.localeCompare(b, 'pt-BR'); });
+  try { localStorage.setItem(STORAGE_KEY_TIPOS_DEF, JSON.stringify(tiposDeficienciaConhecidos)); } catch(e) {}
+}
+
+function importarEscolasConhecidas() {
+  var box = document.getElementById('colarEscolas');
+  var linhas = box.value.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
+  if (!linhas.length) { toast('Cole ao menos um nome de escola.'); return; }
+  var antes = escolasConhecidas.length;
+  linhas.forEach(registrarEscolaConhecida);
+  box.value = '';
+  toast((escolasConhecidas.length - antes) + ' escola(s) adicionada(s) à lista de sugestões.');
+}
+
+function limparEscolasConhecidas() {
+  if (!confirm('Isso vai limpar a lista de sugestões de escolas (não afeta as escolas já cadastradas na tabela). Continuar?')) return;
+  escolasConhecidas = [];
+  try { localStorage.setItem(STORAGE_KEY_ESCOLAS, JSON.stringify(escolasConhecidas)); } catch(e) {}
+  toast('Lista de sugestões limpa.');
+}
+
+function restaurarListaPadrao() {
+  var antes = escolasConhecidas.length;
+  ESCOLAS_PADRAO.forEach(registrarEscolaConhecida);
+  var adicionadas = escolasConhecidas.length - antes;
+  toast(adicionadas > 0 ? (adicionadas + ' escola(s) da lista oficial adicionada(s).') : 'A lista oficial já estava completa.');
+}
+
+function popularFiltroRegiao() {
+  var sel = document.getElementById('filtroRegiao');
+  REGIOES.forEach(function(r) {
+    var op = document.createElement('option');
+    op.value = r; op.textContent = 'Região ' + r;
+    sel.appendChild(op);
+  });
+}
+
+function statusMed(e) {
+  if (e.metaMed === '' || e.metaMed === null || isNaN(e.metaMed)) return 'zero';
+  if (e.atualMed < e.metaMed) return 'falta';
+  if (e.atualMed > e.metaMed) return 'excesso';
+  return 'ok';
+}
+function statusCui(e) {
+  if (e.metaCui === '' || e.metaCui === null || isNaN(e.metaCui)) return 'zero';
+  if (e.atualCui < e.metaCui) return 'falta';
+  if (e.atualCui > e.metaCui) return 'excesso';
+  return 'ok';
+}
+
+function totalDeficiencias(e) {
+  return (e.deficiencias || []).reduce(function(soma, d) { return soma + (parseInt(d.quantidade, 10) || 0); }, 0);
+}
+
+function badgeHTML(status, faltamQtd) {
+  if (status === 'zero') return '<span class="badge badge-zero">—</span>';
+  if (status === 'ok') return '<span class="badge badge-ok">OK</span>';
+  if (status === 'falta') return '<span class="badge badge-falta">Falta ' + faltamQtd + '</span>';
+  if (status === 'excesso') return '<span class="badge badge-excesso">+' + faltamQtd + '</span>';
+  return '';
+}
+
+function adicionarEscola() {
+  escolas.push({
+    id: seq++,
+    nome: '',
+    regiao: '',
+    metaMed: '', atualMed: 0,
+    metaCui: '', atualCui: 0,
+    deficiencias: []
+  });
+  salvar();
+  render();
+  var inputs = document.querySelectorAll('#corpoTabela tr:last-child input[data-campo="nome"]');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removerEscola(id) {
+  if (!confirm('Remover esta escola do painel?')) return;
+  escolas = escolas.filter(function(e) { return e.id !== id; });
+  salvar();
+  render();
+  toast('Escola removida.');
+}
+
+function atualizarCampo(id, campo, valor) {
+  var e = escolas.find(function(x) { return x.id === id; });
+  if (!e) return;
+  if (campo === 'nome' || campo === 'regiao') {
+    e[campo] = valor;
+  } else {
+    e[campo] = valor === '' ? '' : Math.max(0, parseInt(valor) || 0);
+  }
+  salvar();
+  renderStats();
+}
+
+function passou(valor, termo) {
+  return valor.toLowerCase().indexOf(termo.toLowerCase()) !== -1;
+}
+
+function escolasFiltradas() {
+  var busca = document.getElementById('busca').value.trim();
+  var regiao = document.getElementById('filtroRegiao').value;
+  var status = document.getElementById('filtroStatus').value;
+
+  return escolas.filter(function(e) {
+    if (busca && !passou(e.nome, busca)) return false;
+    if (regiao && String(e.regiao) !== regiao) return false;
+    if (status) {
+      var sM = statusMed(e), sC = statusCui(e);
+      if (status === 'falta-med' && sM !== 'falta') return false;
+      if (status === 'falta-cui' && sC !== 'falta') return false;
+      if (status === 'excesso' && sM !== 'excesso' && sC !== 'excesso') return false;
+      if (status === 'ok' && (sM === 'falta' || sM === 'excesso' || sC === 'falta' || sC === 'excesso')) return false;
+    }
+    return true;
+  });
+}
+
+function render() {
+  var corpo = document.getElementById('corpoTabela');
+  var vazio = document.getElementById('estadoVazio');
+  var lista = escolasFiltradas();
+  corpo.innerHTML = '';
+  vazio.style.display = escolas.length === 0 ? 'block' : 'none';
+
+  var opcoesRegiao = REGIOES.map(function(r) { return '<option value="' + r + '">' + r + '</option>'; }).join('');
+
+  lista.forEach(function(e, idx) {
+    var sM = statusMed(e), sC = statusCui(e);
+    var faltamMed = (sM === 'falta') ? (e.metaMed - e.atualMed) : (sM === 'excesso' ? (e.atualMed - e.metaMed) : 0);
+    var faltamCui = (sC === 'falta') ? (e.metaCui - e.atualCui) : (sC === 'excesso' ? (e.atualCui - e.metaCui) : 0);
+
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="col-num">' + (idx + 1) + '</td>' +
+      '<td><div class="autocomplete-wrap"><input class="cell-input" data-campo="nome" type="text" autocomplete="off" value="' + escAttr(e.nome) + '" placeholder="Digite para buscar a escola"><svg class="autocomplete-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg><div class="autocomplete-list"></div></div></td>' +
+      '<td><select class="cell-select" data-campo="regiao"><option value="">—</option>' + opcoesRegiao.replace('value="' + e.regiao + '"', 'value="' + e.regiao + '" selected') + '</select></td>' +
+      '<td><input class="cell-input cell-num" data-campo="metaMed" type="number" min="0" value="' + e.metaMed + '"></td>' +
+      '<td><input class="cell-input cell-num" data-campo="atualMed" type="number" min="0" value="' + e.atualMed + '"></td>' +
+      '<td>' + badgeHTML(sM, faltamMed) + '</td>' +
+      '<td><input class="cell-input cell-num" data-campo="metaCui" type="number" min="0" value="' + e.metaCui + '"></td>' +
+      '<td><input class="cell-input cell-num" data-campo="atualCui" type="number" min="0" value="' + e.atualCui + '"></td>' +
+      '<td>' + badgeHTML(sC, faltamCui) + '</td>' +
+      '<td><button class="btn btn-ghost btn-sm" style="padding:5px 9px" title="Ver/editar alunos por deficiência" onclick="abrirDeficiencias(' + e.id + ')">' + totalDeficiencias(e) + (totalDeficiencias(e) ? ' aluno(s)' : ' —') + '</button></td>' +
+      '<td class="col-acoes"><button class="btn-icon-sm" title="Remover" onclick="removerEscola(' + e.id + ')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></td>';
+
+    tr.querySelectorAll('[data-campo]').forEach(function(input) {
+      var ev = (input.tagName === 'SELECT') ? 'change' : 'input';
+      input.addEventListener(ev, function() {
+        atualizarCampo(e.id, input.dataset.campo, input.value);
+        var sMnow = statusMed(e), sCnow = statusCui(e);
+        var faltMnow = (sMnow === 'falta') ? (e.metaMed - e.atualMed) : (sMnow === 'excesso' ? (e.atualMed - e.metaMed) : 0);
+        var faltCnow = (sCnow === 'falta') ? (e.metaCui - e.atualCui) : (sCnow === 'excesso' ? (e.atualCui - e.metaCui) : 0);
+        tr.children[5].innerHTML = badgeHTML(sMnow, faltMnow);
+        tr.children[8].innerHTML = badgeHTML(sCnow, faltCnow);
+        renderStats();
+      });
+      input.addEventListener('blur', function() {
+        if (input.dataset.campo === 'nome') registrarEscolaConhecida(input.value);
+        // NÃO chama render() aqui: recriar a tabela inteira no blur destruía
+        // o próprio campo que o usuário estava tocando em seguida, antes do
+        // evento 'focus' disparar nele — por isso o autocomplete não abria
+        // no Android/Chrome (o campo virava um clone novo, sem o listener
+        // realmente "vivo" no momento do toque).
+      });
+    });
+
+    var nomeInput = tr.querySelector('input[data-campo="nome"]');
+    var nomeList = tr.querySelector('.autocomplete-list');
+    ligarAutocomplete(nomeInput, nomeList, function() { return escolasConhecidas; }, function(valorEscolhido) {
+      atualizarCampo(e.id, 'nome', valorEscolhido);
+      registrarEscolaConhecida(valorEscolhido);
+    });
+
+    corpo.appendChild(tr);
+  });
+
+  renderStats();
+}
+
+function escAttr(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function renderStats() {
+  var totalEscolas = escolas.length;
+  var faltaMed = 0, faltaCui = 0, excessoCount = 0, totalMedAtual = 0, totalCuiAtual = 0, totalAlunosNEE = 0;
+  escolas.forEach(function(e) {
+    var sM = statusMed(e), sC = statusCui(e);
+    if (sM === 'falta') faltaMed += (e.metaMed - e.atualMed);
+    if (sC === 'falta') faltaCui += (e.metaCui - e.atualCui);
+    if (sM === 'excesso' || sC === 'excesso') excessoCount++;
+    totalMedAtual += (e.atualMed || 0);
+    totalCuiAtual += (e.atualCui || 0);
+    totalAlunosNEE += totalDeficiencias(e);
+  });
+
+  var grid = document.getElementById('statsGrid');
+  grid.innerHTML =
+    '<div class="stat"><div class="stat-label">Escolas cadastradas</div><div class="stat-value">' + totalEscolas + '</div></div>' +
+    '<div class="stat danger"><div class="stat-label">Vagas em aberto · Mediadores</div><div class="stat-value">' + faltaMed + '</div></div>' +
+    '<div class="stat danger"><div class="stat-label">Vagas em aberto · Cuidadores</div><div class="stat-value">' + faltaCui + '</div></div>' +
+    '<div class="stat warn"><div class="stat-label">Escolas com excesso</div><div class="stat-value">' + excessoCount + '</div></div>' +
+    '<div class="stat"><div class="stat-label">Alunos NEE cadastrados</div><div class="stat-value">' + totalAlunosNEE + '</div></div>' +
+    '<div class="stat success"><div class="stat-label">Mediadores alocados</div><div class="stat-value">' + totalMedAtual + ' <span style="font-size:13px;color:var(--text-hint);font-weight:600;">/ ' + metaTotalMed + '</span><button class="btn-icon-sm meta-edit" title="Editar total contratado de mediadores" onclick="editarMetaTotal(\'med\')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></div>' +
+    '<div class="stat success"><div class="stat-label">Cuidadores alocados</div><div class="stat-value">' + totalCuiAtual + ' <span style="font-size:13px;color:var(--text-hint);font-weight:600;">/ ' + metaTotalCui + '</span><button class="btn-icon-sm meta-edit" title="Editar total contratado de cuidadores" onclick="editarMetaTotal(\'cui\')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div></div>';
+}
+
+// ---- Sugestão de realocação ----
+// Casa escolas com excesso (doadoras) com escolas em falta (receptoras) da
+// MESMA região, mediadores e cuidadores calculados separadamente. Não mexe
+// nos dados de verdade até o usuário clicar em "Aplicar" — só monta a lista
+// de sugestões a partir do estado atual de `escolas`.
+function calcularRealocacao() {
+  var movimentos = [];
+  REGIOES.forEach(function(regiao) {
+    var doMesmaRegiao = escolas.filter(function(e) { return String(e.regiao) === String(regiao); });
+    movimentos = movimentos.concat(calcularMovimentosTipo(doMesmaRegiao, 'med', regiao));
+    movimentos = movimentos.concat(calcularMovimentosTipo(doMesmaRegiao, 'cui', regiao));
+  });
+  sugestoesRealocacao = movimentos;
+  renderRealocacao();
+  if (!movimentos.length) toast('Nenhuma realocação possível: não há pares de excesso/falta na mesma região.');
+  else toast(movimentos.length + ' movimentação(ões) sugerida(s).');
+}
+
+function calcularMovimentosTipo(listaRegiao, tipo, regiao) {
+  var campoMeta = (tipo === 'med') ? 'metaMed' : 'metaCui';
+  var campoAtual = (tipo === 'med') ? 'atualMed' : 'atualCui';
+
+  function metaDefinida(e) {
+    return e[campoMeta] !== '' && e[campoMeta] !== null && !isNaN(e[campoMeta]);
+  }
+
+  var doadoras = listaRegiao.filter(function(e) { return metaDefinida(e) && e[campoAtual] > e[campoMeta]; })
+    .map(function(e) { return { id: e.id, nome: e.nome, sobra: e[campoAtual] - e[campoMeta] }; })
+    .sort(function(a, b) { return b.sobra - a.sobra; });
+
+  var receptoras = listaRegiao.filter(function(e) { return metaDefinida(e) && e[campoAtual] < e[campoMeta]; })
+    .map(function(e) { return { id: e.id, nome: e.nome, falta: e[campoMeta] - e[campoAtual] }; })
+    .sort(function(a, b) { return b.falta - a.falta; });
+
+  var movimentos = [];
+  var i = 0, j = 0;
+  while (i < doadoras.length && j < receptoras.length) {
+    var d = doadoras[i], r = receptoras[j];
+    var qtd = Math.min(d.sobra, r.falta);
+    if (qtd > 0) {
+      movimentos.push({ regiao: regiao, tipo: tipo, origemId: d.id, origemNome: d.nome, destinoId: r.id, destinoNome: r.nome, quantidade: qtd });
+      d.sobra -= qtd;
+      r.falta -= qtd;
+    }
+    if (d.sobra <= 0) i++;
+    if (r.falta <= 0) j++;
+  }
+  return movimentos;
+}
+
+function renderRealocacao() {
+  var corpo = document.getElementById('corpoRealocacao');
+  var vazio = document.getElementById('estadoVazioRealocacao');
+  var resumo = document.getElementById('resumoRealocacao');
+
+  if (!sugestoesRealocacao.length) {
+    corpo.innerHTML = '';
+    vazio.style.display = 'block';
+    resumo.textContent = '';
+    return;
+  }
+  vazio.style.display = 'none';
+  var totalQtd = sugestoesRealocacao.reduce(function(s, m) { return s + m.quantidade; }, 0);
+  resumo.textContent = sugestoesRealocacao.length + ' movimentação(ões) sugerida(s) — ' + totalQtd + ' vaga(s) em aberto fechada(s) sem contratar ninguém a mais.';
+
+  corpo.innerHTML = sugestoesRealocacao.map(function(m, idx) {
+    var rotulo = (m.tipo === 'med') ? 'Mediador' : 'Cuidador';
+    return '<tr>' +
+      '<td>Região ' + m.regiao + '</td>' +
+      '<td><span class="badge badge-zero">' + rotulo + '</span></td>' +
+      '<td>' + escAttr(m.origemNome || '(sem nome)') + '</td>' +
+      '<td style="text-align:center;color:var(--text-hint)">&#8594;</td>' +
+      '<td>' + escAttr(m.destinoNome || '(sem nome)') + '</td>' +
+      '<td style="text-align:center;font-weight:700">' + m.quantidade + '</td>' +
+      '<td class="col-acoes"><button class="btn btn-sm btn-primary" onclick="aplicarMovimento(' + idx + ')">Aplicar</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+function aplicarMovimento(idx) {
+  var m = sugestoesRealocacao[idx];
+  if (!m) return;
+  var origem = escolas.find(function(e) { return e.id === m.origemId; });
+  var destino = escolas.find(function(e) { return e.id === m.destinoId; });
+  if (!origem || !destino) {
+    toast('Escola não encontrada (pode ter sido removida ou editada). Recalcule as sugestões.');
+    sugestoesRealocacao.splice(idx, 1);
+    renderRealocacao();
+    return;
+  }
+  var campoAtual = (m.tipo === 'med') ? 'atualMed' : 'atualCui';
+  origem[campoAtual] = Math.max(0, (origem[campoAtual] || 0) - m.quantidade);
+  destino[campoAtual] = (destino[campoAtual] || 0) + m.quantidade;
+  salvar();
+  sugestoesRealocacao.splice(idx, 1);
+  render();
+  renderRealocacao();
+  toast('Movido: ' + m.quantidade + ' ' + (m.tipo === 'med' ? 'mediador(es)' : 'cuidador(es)') + ' de "' + origem.nome + '" para "' + destino.nome + '".');
+}
+
+function aplicarTodasMovimentos() {
+  if (!sugestoesRealocacao.length) { toast('Calcule as sugestões primeiro.'); return; }
+  if (!confirm('Aplicar as ' + sugestoesRealocacao.length + ' movimentações sugeridas? Isso vai atualizar os números "Atual" das escolas envolvidas.')) return;
+  var copia = sugestoesRealocacao.slice();
+  copia.forEach(function(m) {
+    var origem = escolas.find(function(e) { return e.id === m.origemId; });
+    var destino = escolas.find(function(e) { return e.id === m.destinoId; });
+    if (!origem || !destino) return;
+    var campoAtual = (m.tipo === 'med') ? 'atualMed' : 'atualCui';
+    origem[campoAtual] = Math.max(0, (origem[campoAtual] || 0) - m.quantidade);
+    destino[campoAtual] = (destino[campoAtual] || 0) + m.quantidade;
+  });
+  salvar();
+  sugestoesRealocacao = [];
+  render();
+  renderRealocacao();
+  toast('Todas as movimentações foram aplicadas.');
+}
+
+function editarMetaTotal(tipo) {
+  var atual = (tipo === 'med') ? metaTotalMed : metaTotalCui;
+  var rotulo = (tipo === 'med') ? 'mediadores' : 'cuidadores';
+  var novo = prompt('Total contratado/orçado de ' + rotulo + ':', atual);
+  if (novo === null) return;
+  novo = parseInt(novo, 10);
+  if (isNaN(novo) || novo < 0) { toast('Digite um número válido.'); return; }
+  if (tipo === 'med') metaTotalMed = novo; else metaTotalCui = novo;
+  salvar();
+  renderStats();
+  toast('Total de ' + rotulo + ' atualizado.');
+}
+
+function exportarJSON() {
+  var data = JSON.stringify({escolas: escolas, seq: seq, exportadoEm: new Date().toISOString()}, null, 2);
+  var blob = new Blob([data], {type: 'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'painel-alocacao-gee-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Backup exportado.');
+}
+
+document.getElementById('inputImportar').addEventListener('change', function(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.escolas)) throw new Error('Formato inválido.');
+      escolas = data.escolas;
+      seq = data.seq || (escolas.length + 1);
+      salvar();
+      render();
+      toast('Backup importado com sucesso.');
+    } catch(err) {
+      toast('Erro ao importar: arquivo inválido.');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+});
+
+function limparTudo() {
+  if (!confirm('Isso vai apagar todas as escolas cadastradas neste painel. Deseja continuar?')) return;
+  escolas = []; seq = 1;
+  salvar();
+  render();
+  toast('Painel limpo.');
+}
+
+document.getElementById('busca').addEventListener('input', render);
+document.getElementById('filtroRegiao').addEventListener('change', render);
+document.getElementById('filtroStatus').addEventListener('change', render);
+
+function toast(msg) {
+  var t = document.getElementById('toastEl');
+  t.textContent = msg; t.className = 'toast show';
+  setTimeout(function(){ t.className = 'toast'; }, 3000);
+}
+
+function abrirSobre() { document.getElementById('modalSobre').className = 'modal-overlay open'; document.body.style.overflow='hidden'; }
+function fecharSobre(e) {
+  if (e && e.target !== document.getElementById('modalSobre')) return;
+  document.getElementById('modalSobre').className = 'modal-overlay'; document.body.style.overflow='';
+}
+
+// ---- Alunos por tipo de deficiência (por escola) ----
+// Guardado em e.deficiencias = [{tipo: 'Síndrome de Down', quantidade: 3}, ...].
+// Não usamos colunas fixas porque os tipos variam muito de escola pra escola;
+// um modal com lista livre (tipo + quantidade) cobre qualquer combinação sem
+// deixar a tabela principal cheia de colunas vazias.
+function abrirDeficiencias(id) {
+  escolaDeficienciasAbertaId = id;
+  renderDeficienciasModal();
+  document.getElementById('modalDeficiencias').className = 'modal-overlay open';
+  document.body.style.overflow = 'hidden';
+}
+
+function fecharDeficiencias(e) {
+  if (e && e.target !== document.getElementById('modalDeficiencias')) return;
+  document.getElementById('modalDeficiencias').className = 'modal-overlay';
+  document.body.style.overflow = '';
+  escolaDeficienciasAbertaId = null;
+  render();
+}
+
+function renderDeficienciasModal() {
+  var esc = escolas.find(function(x) { return x.id === escolaDeficienciasAbertaId; });
+  if (!esc) return;
+  document.getElementById('defEscolaNome').textContent = esc.nome || '(escola sem nome)';
+  esc.deficiencias = esc.deficiencias || [];
+
+  var corpo = document.getElementById('corpoDeficiencias');
+  if (!esc.deficiencias.length) {
+    corpo.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-hint);padding:16px 8px">Nenhum tipo cadastrado ainda.</td></tr>';
+  } else {
+    corpo.innerHTML = esc.deficiencias.map(function(d, idx) {
+      return '<tr>' +
+        '<td><div class="autocomplete-wrap"><input class="cell-input" data-idx="' + idx + '" data-campo="tipo" type="text" autocomplete="off" value="' + escAttr(d.tipo) + '" placeholder="Ex.: Síndrome de Down"><svg class="autocomplete-arrow" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg><div class="autocomplete-list"></div></div></td>' +
+        '<td><input class="cell-input cell-num" data-idx="' + idx + '" data-campo="quantidade" type="number" min="0" value="' + d.quantidade + '"></td>' +
+        '<td class="col-acoes"><button class="btn-icon-sm" title="Remover" onclick="removerTipoDeficiencia(' + idx + ')"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  document.getElementById('defTotalAlunos').textContent = totalDeficiencias(esc);
+
+  corpo.querySelectorAll('[data-campo]').forEach(function(input) {
+    input.addEventListener('input', function() {
+      atualizarTipoDeficiencia(parseInt(input.dataset.idx, 10), input.dataset.campo, input.value);
+    });
+    input.addEventListener('blur', function() {
+      if (input.dataset.campo === 'tipo') registrarTipoDeficienciaConhecido(input.value);
+    });
+  });
+
+  corpo.querySelectorAll('input[data-campo="tipo"]').forEach(function(input) {
+    var wrap = input.closest('.autocomplete-wrap');
+    var listEl = wrap.querySelector('.autocomplete-list');
+    var idx = parseInt(input.dataset.idx, 10);
+    ligarAutocomplete(input, listEl, function() { return tiposDeficienciaConhecidos; }, function(valorEscolhido) {
+      atualizarTipoDeficiencia(idx, 'tipo', valorEscolhido);
+      registrarTipoDeficienciaConhecido(valorEscolhido);
+      input.value = valorEscolhido;
+    });
+  });
+}
+
+function adicionarTipoDeficiencia() {
+  var esc = escolas.find(function(x) { return x.id === escolaDeficienciasAbertaId; });
+  if (!esc) return;
+  esc.deficiencias = esc.deficiencias || [];
+  esc.deficiencias.push({ tipo: '', quantidade: 1 });
+  salvar();
+  renderDeficienciasModal();
+  var inputs = document.querySelectorAll('#corpoDeficiencias input[data-campo="tipo"]');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function atualizarTipoDeficiencia(idx, campo, valor) {
+  var esc = escolas.find(function(x) { return x.id === escolaDeficienciasAbertaId; });
+  if (!esc || !esc.deficiencias || !esc.deficiencias[idx]) return;
+  if (campo === 'tipo') {
+    esc.deficiencias[idx].tipo = valor;
+  } else {
+    esc.deficiencias[idx].quantidade = valor === '' ? 0 : Math.max(0, parseInt(valor, 10) || 0);
+  }
+  salvar();
+  document.getElementById('defTotalAlunos').textContent = totalDeficiencias(esc);
+}
+
+function removerTipoDeficiencia(idx) {
+  var esc = escolas.find(function(x) { return x.id === escolaDeficienciasAbertaId; });
+  if (!esc || !esc.deficiencias) return;
+  esc.deficiencias.splice(idx, 1);
+  salvar();
+  renderDeficienciasModal();
+}
+
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('modalDeficiencias').classList.contains('open')) { fecharDeficiencias(); return; }
+  fecharSobre();
+});
+
+popularFiltroRegiao();
+carregar();
+render();
+</script>
+</body>
+</html>
